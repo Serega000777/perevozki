@@ -1,0 +1,62 @@
+// Модели перенесены из Cement CRM (раздел «Техника») 1:1, включая имена таблиц,
+// чтобы данные можно было перенести скриптом scripts/import-from-cement.sh без маппинга.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  telegramId BigInt   @unique
+  name       String
+  createdAt  DateTime @default(now())
+}
+
+model EquipmentVehicle {
+  id        Int                @id @default(autoincrement())
+  name      String
+  note      String?
+  active    Boolean            @default(true)
+  trips     EquipmentTrip[]
+  expenses  EquipmentExpense[]
+  createdAt DateTime           @default(now())
+}
+
+model EquipmentTrip {
+  id          Int              @id @default(autoincrement())
+  vehicleId   Int
+  vehicle     EquipmentVehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  date        DateTime
+  destination String
+  amount      Decimal          @db.Decimal(14, 2)
+  mileage     Decimal?         @db.Decimal(12, 2)
+  comment     String?
+  paid        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model EquipmentExpenseCategory {
+  id        Int                @id @default(autoincrement())
+  name      String             @unique
+  expenses  EquipmentExpense[]
+  createdAt DateTime           @default(now())
+}
+
+model EquipmentExpense {
+  id         Int                      @id @default(autoincrement())
+  vehicleId  Int
+  vehicle    EquipmentVehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  categoryId Int
+  category   EquipmentExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  date       DateTime
+  amount     Decimal                  @db.Decimal(14, 2)
+  comment    String?
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+}
