@@ -2,12 +2,13 @@ import crypto from 'node:crypto';
 import type { RequestHandler } from 'express';
 
 export type TelegramUser = { id: number; first_name?: string; last_name?: string; username?: string };
+export type Role = 'owner' | 'viewer';
 
 const MAX_AGE_SECONDS = 86400;
 
 export class AuthError extends Error {
   constructor(
-    readonly status: 401 | 403,
+    readonly status: 401,
     message: string,
   ) {
     super(message);
@@ -42,7 +43,7 @@ export function verifyInitData(initData: string, botToken: string, nowMs = Date.
   return user;
 }
 
-export function allowedTelegramIds(value = process.env.ADMIN_TELEGRAM_IDS) {
+export function adminTelegramIds(value = process.env.ADMIN_TELEGRAM_IDS) {
   return new Set(
     (value ?? '')
       .split(',')
@@ -50,6 +51,9 @@ export function allowedTelegramIds(value = process.env.ADMIN_TELEGRAM_IDS) {
       .filter(Boolean),
   );
 }
+
+// Правки вносят только ADMIN_TELEGRAM_IDS; любой другой пользователь Telegram — зритель.
+export const roleOf = (userId: number, admins = adminTelegramIds()): Role => (admins.has(String(userId)) ? 'owner' : 'viewer');
 
 export const telegramAuth: RequestHandler = (req, res, next) => {
   const initData = req.header('x-telegram-init-data');
@@ -60,9 +64,8 @@ export const telegramAuth: RequestHandler = (req, res, next) => {
   }
   try {
     const user = verifyInitData(initData, token);
-    const allowed = allowedTelegramIds();
-    if (allowed.size && !allowed.has(String(user.id))) throw new AuthError(403, 'Доступ запрещён');
     res.locals.telegramUser = user;
+    res.locals.role = roleOf(user.id);
     next();
   } catch (error) {
     if (!(error instanceof AuthError)) throw error;

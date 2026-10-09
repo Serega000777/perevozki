@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { allowedTelegramIds, AuthError, verifyInitData } from './auth.js';
+import { adminTelegramIds, AuthError, roleOf, verifyInitData } from './auth.js';
 import { signInitData } from './testing.js';
 
 const token = '123456:test-token';
@@ -40,8 +40,15 @@ test('некорректный Telegram ID отклоняется', () => {
   assert.throws(() => verifyInitData(signInitData({ id: -5 }, token), token), /Telegram ID/);
 });
 
-test('список разрешённых ID разбирается из строки через запятую', () => {
-  assert.deepEqual([...allowedTelegramIds(' 1, 22 ,,333 ')], ['1', '22', '333']);
-  assert.equal(allowedTelegramIds('').size, 0);
-  assert.equal(allowedTelegramIds(undefined).size, 0);
+test('список админов разбирается из строки через запятую', () => {
+  assert.deepEqual([...adminTelegramIds(' 1, 22 ,,333 ')], ['1', '22', '333']);
+  assert.equal(adminTelegramIds('').size, 0);
+  assert.equal(adminTelegramIds(undefined).size, 0);
+});
+
+test('правки только у админов, остальные — зрители', () => {
+  const admins = adminTelegramIds('42,7');
+  assert.equal(roleOf(42, admins), 'owner');
+  assert.equal(roleOf(43, admins), 'viewer');
+  assert.equal(roleOf(42, adminTelegramIds('')), 'viewer');
 });

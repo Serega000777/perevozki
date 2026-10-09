@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import type { PrismaClient } from '@prisma/client';
-import { telegramAuth, type TelegramUser } from './auth.js';
+import { telegramAuth, type Role, type TelegramUser } from './auth.js';
 import { equipmentRouter } from './equipment.js';
 import { InputError } from './validation.js';
 
@@ -26,7 +26,7 @@ export function createApp(prisma: PrismaClient, isProduction = process.env.NODE_
     const name = [telegram.first_name, telegram.last_name].filter(Boolean).join(' ') || telegram.username || 'Администратор';
     const telegramId = BigInt(telegram.id);
     const user = await prisma.user.upsert({ where: { telegramId }, update: { name }, create: { telegramId, name } });
-    res.json({ id: user.id, telegramId: user.telegramId.toString(), name: user.name });
+    res.json({ id: user.id, telegramId: user.telegramId.toString(), name: user.name, role: res.locals.role as Role });
   });
   app.use('/api/equipment', equipmentRouter(prisma));
 
