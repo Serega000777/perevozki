@@ -9,8 +9,9 @@
 **M1 (Standalone parity) — локально работает.** Раздел «Техника» Cement CRM перенесён в
 самостоятельное приложение: своя БД (Prisma-миграции с нуля), API 1:1, Mini App 1:1,
 отдельный бот, Docker Compose. Код не ссылается на Cement CRM. Production-деплоя нет (M4),
-Telegram-бот не создан (нужен токен владельца). Хостинг решён: поддомен
-`https://perevozki.crm-cement.ru` на общем VPS `212.113.109.151` (ADR 0002), конфиги готовы, на сервер не выкладывалось.
+Telegram-бот не создан (нужен токен владельца). **Production работает:**
+`https://perevozki.crm-cement.ru` на общем VPS (ADR 0002), бот `@perevozki_bot_bot`. Вход в Mini App
+из самого Telegram агентом не проверен (нет доступа к Telegram) — ждём подтверждения владельца.
 
 ## Уже реализовано
 
@@ -25,8 +26,10 @@ Telegram-бот не создан (нужен токен владельца). Х
 - [x] Скрипт переноса данных техники из БД Cement CRM (`scripts/import-from-cement.sh`)
 - [x] Docker: `docker-compose.yml` (db, backend, frontend+nginx, bot), healthchecks, том `postgres_data`
 - [x] Хостинг: решение владельца — поддомен на общем VPS; ADR 0002, сайт-блок для общего Caddy, пошаговый деплой в `infra/README.md`
-- [ ] Деплой на VPS — не выполнялся (нужны подтверждение владельца и токен бота)
-- [ ] Telegram-бот против настоящего Telegram — **не проверен** (нет токена, `api.telegram.org` с этой машины недоступен)
+- [x] Деплой на VPS: `/opt/perevozki`, compose-проект `perevozki` (4 контейнера), `.env` production — выкладывал владелец
+- [x] HTTPS на поддомене: маршрут в общем Caddy (`amola-web-1`) применён `caddy reload`, сертификат Let's Encrypt выпущен
+- [x] Бот `@perevozki_bot_bot` запущен на сервере: `getMe` ok, кнопка меню web_app → `https://perevozki.crm-cement.ru/`, команда `/start`
+- [ ] Вход в Mini App из Telegram — не проверен агентом (проверяет владелец) — **не проверен** (нет токена, `api.telegram.org` с этой машины недоступен)
 
 ## Перенесено из Cement CRM
 
@@ -97,6 +100,9 @@ Telegram-бот не создан (нужен токен владельца). Х
 - [x] `docker compose -f docker-compose.yml -f infra/docker-compose.proxy.yml config` — оверлей валиден (на VPS не запускался)
 - [x] `caddy adapt` (caddy:2-alpine) разбирает `infra/caddy/perevozki.crm-cement.ru.caddy`: host `perevozki.crm-cement.ru` → `perevozki-web:80`
 - [x] DNS (8.8.8.8): `perevozki.crm-cement.ru` → `212.113.109.151` (= `amola-finance.ru`), wildcard нет
+- [x] Production (2026-10-09, после `caddy reload`): снаружи `https://perevozki.crm-cement.ru/health` → 200, `/` отдаёт Mini App, `/api/*` без initData → 401, заголовки `Cache-Control: no-store` и CSP `frame-ancestors` для Telegram на месте; все 4 контейнера `perevozki-*` работают, backend `healthy`
+- [x] Amola после reload: `amola-finance.ru` и `/api/health` → 200, контейнеры `amola-*` не перезапускались, ошибок Caddy по его домену нет
+- [x] Прод-БД Perevozki: 0 машин/ходок/расходов, 5 категорий, 0 пользователей (через Telegram ещё никто не входил)
 
 ## Git
 
@@ -109,9 +115,14 @@ Telegram-бот не создан (нужен токен владельца). Х
 
 ## Известные проблемы
 
+- Маршрут Perevozki живёт в Caddyfile Amola на сервере как локальная правка (`/root/money_dock`,
+  не в git). Если `amola-web-1` пересоздадут из старого образа без `--build` — поддомен пропадёт.
+  Amola трогать запрещено — решает владелец.
+
 - `crm-cement.ru` в DNS указывает на `31.77.197.107`, а не на общий VPS `212.113.109.151`; из сети
-  машины владельца 2026-10-09 HTTPS не поднимался (TLS-ошибка), HTTP отвечал 503. Где фактически
-  работает Cement — не проверено (на сервер не заходили).
+  машины владельца 2026-10-09 HTTPS не поднимался (TLS-ошибка), HTTP отвечал 503. Сам Cement
+  работает на общем VPS (`/opt/cement-crm`, контейнеры `cement-crm-*` up 3 недели), маршрут в Caddy есть —
+  похоже, не переключена DNS-запись домена (Cement не трогали).
 
 - Бот не проверен против настоящего Telegram (нет токена; с машины владельца `api.telegram.org` недоступен).
 - `npm audit`: 3 high в `deepmerge-ts` внутри Prisma CLI (dev-инструмент, пользовательский ввод не обрабатывает). Исправление только понижением Prisma — не делали.
@@ -127,6 +138,8 @@ Telegram-бот не создан (нужен токен владельца). Х
 VPS за Caddy проекта Amola (сеть `public_proxy`, алиас `perevozki-web`).
 
 ## Что НЕ трогать
+
+- **Amola Finance** на том же VPS (`amola-finance.ru`, `amola-*`, `/root/money_dock`) — прямой запрет владельца.
 
 - Cement CRM (`C:\AI\projects\crm-cement`, GitHub `Serega000777/cement`, его VPS, БД, бот) — read-only.
 - `C:\.git` и другие проекты в `C:\AI\projects\`.
