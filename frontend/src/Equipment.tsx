@@ -42,23 +42,34 @@ const Select = ({ label, children, ...props }: { label: string; children: React.
   </label>
 );
 
-export function Equipment() {
+// readOnly — зритель: видит только статистику; права всё равно проверяет сервер.
+export function Equipment({ readOnly }: { readOnly: boolean }) {
   const [tab, setTab] = useState<'vehicles' | 'trips' | 'expenses' | 'analytics'>('vehicles'),
     [vehicles, setVehicles] = useState<Vehicle[]>([]),
     [trips, setTrips] = useState<Trip[]>([]),
     [expenses, setExpenses] = useState<Expense[]>([]),
     [categories, setCategories] = useState<Category[]>([]),
     [error, setError] = useState('');
-  const load = () =>
-    Promise.all([
-      api<Vehicle[]>('/equipment/vehicles').then(setVehicles),
-      api<Trip[]>('/equipment/trips').then(setTrips),
-      api<Expense[]>('/equipment/expenses').then(setExpenses),
-      api<Category[]>('/equipment/categories').then(setCategories),
-    ]).catch((e) => setError(e.message));
+  const load = () => {
+    const requests = [api<Vehicle[]>('/equipment/vehicles').then(setVehicles)];
+    if (!readOnly)
+      requests.push(
+        api<Trip[]>('/equipment/trips').then(setTrips),
+        api<Expense[]>('/equipment/expenses').then(setExpenses),
+        api<Category[]>('/equipment/categories').then(setCategories),
+      );
+    return Promise.all(requests).catch((e) => setError(e.message));
+  };
   useEffect(() => {
     load();
   }, []);
+  if (readOnly)
+    return (
+      <>
+        {error && <div className="alert">{error}</div>}
+        <EquipmentAnalytics vehicles={vehicles} readOnly />
+      </>
+    );
   return (
     <>
       <div className="equipment-tabs">
@@ -392,7 +403,7 @@ function Expenses({
   );
 }
 
-function EquipmentAnalytics({ vehicles }: { vehicles: Vehicle[] }) {
+function EquipmentAnalytics({ vehicles, readOnly = false }: { vehicles: Vehicle[]; readOnly?: boolean }) {
   const [period, setPeriod] = useState('month'),
     [vehicleId, setVehicleId] = useState('all'),
     [from, setFrom] = useState(today),
@@ -515,10 +526,16 @@ function EquipmentAnalytics({ vehicles }: { vehicles: Vehicle[] }) {
                         <small>{x.vehicle.name}</small>
                       </div>
                       <b>{rub(Number(x.amount))}</b>
-                      <label className="paid-toggle">
-                        <input type="checkbox" checked={x.paid} onChange={() => toggle(x)} />
-                        <span>{x.paid ? 'Отданы' : 'Не отданы'}</span>
-                      </label>
+                      {readOnly ? (
+                        <span className="paid-toggle">
+                          <span>{x.paid ? 'Отданы' : 'Не отданы'}</span>
+                        </span>
+                      ) : (
+                        <label className="paid-toggle">
+                          <input type="checkbox" checked={x.paid} onChange={() => toggle(x)} />
+                          <span>{x.paid ? 'Отданы' : 'Не отданы'}</span>
+                        </label>
+                      )}
                     </div>
                   ))}
                   {!shownTrips.length && <div className="empty">Ходок нет</div>}

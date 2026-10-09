@@ -32,10 +32,18 @@ const expenseData = (body: any) => ({
   comment: optionalText(body.comment),
 });
 
+// Зрителю открыта только статистика (и список машин для её фильтра); остальное закрыто по умолчанию.
+const viewerRoutes = new Set(['/analytics', '/vehicles']);
+
 type VehicleSummary = { vehicleId: number; name: string; revenue: number; unpaid: number; expenses: number; trips: number };
 
 export function equipmentRouter(prisma: PrismaClient) {
   const router = Router();
+
+  router.use((req, res, next) => {
+    if (res.locals.role === 'owner' || (req.method === 'GET' && viewerRoutes.has(req.path))) return next();
+    res.status(403).json({ error: 'Доступен только просмотр статистики' });
+  });
 
   router.get('/vehicles', async (_req, res) => {
     res.json(await prisma.equipmentVehicle.findMany({ orderBy: { name: 'asc' } }));

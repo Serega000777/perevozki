@@ -19,7 +19,8 @@ Telegram-бот не создан (нужен токен владельца). **
 - [x] npm workspaces `backend` / `frontend` / `bot`, Prettier
 - [x] БД: `User` + `EquipmentVehicle`, `EquipmentTrip`, `EquipmentExpenseCategory`, `EquipmentExpense`; init-миграция + 5 стандартных категорий
 - [x] API `/api/equipment/*` (15 эндпоинтов) и `/api/auth/me` — логика 1:1 из Cement CRM
-- [x] Проверка подписи Telegram initData (HMAC, 24 ч) + белый список `ADMIN_TELEGRAM_IDS`
+- [x] Проверка подписи Telegram initData (HMAC, 24 ч)
+- [x] Роли (ADR 0003): владелец (`ADMIN_TELEGRAM_IDS`) — всё; любой другой пользователь Telegram — зритель, видит только «Аналитику»; права проверяет сервер (зрителю открыты только `GET /analytics` и `GET /vehicles`)
 - [x] Безопасный dev-вход: `scripts/dev-init-data.mjs` подписывает тестовый initData (обхода проверки нет)
 - [x] `/health` с проверкой БД (503, если БД недоступна)
 - [x] Mini App: вкладки Авто / Ходки / Расходы / Аналитика, детализация, стили Cement CRM
@@ -67,7 +68,7 @@ Telegram-бот не создан (нужен токен владельца). **
 - `bot/`: `package.json`, `tsconfig.json`, `Dockerfile`, `src/index.ts`
 - `scripts/dev-init-data.mjs`, `scripts/import-from-cement.sh`
 - `infra/README.md`, `infra/docker-compose.proxy.yml`, `infra/caddy/perevozki.crm-cement.ru.caddy`
-- `docs/cement-source-analysis.md`, `docs/decisions/0001-extract-from-cement-crm.md`, `docs/decisions/0002-hosting-subdomain-shared-vps.md`
+- `docs/cement-source-analysis.md`, `docs/decisions/0001-extract-from-cement-crm.md`, `docs/decisions/0002-hosting-subdomain-shared-vps.md`, `docs/decisions/0003-owner-and-viewer-roles.md`
 - `README.md`, `AGENTS.md`, `CLAUDE.md`, `AGENT_DONE.md`, `AGENT_TODO.md`
 
 ## База данных
@@ -84,6 +85,7 @@ Telegram-бот не создан (нужен токен владельца). **
 Все проверки — 2026-10-09 на Windows-машине владельца:
 
 - [x] `npm run typecheck` — 0 ошибок (backend, frontend, bot)
+- [x] Роли (2026-10-09): `npm test` 13/13, `npm run test:e2e` 6/6 — зритель: `auth/me` → `viewer`, статистика 200, `/trips` `/expenses` `/categories` → 403, создание/правка/оплата/удаление → 403, цифры совпадают с владельцем; в браузере через Docker-nginx зритель видит «… · просмотр», 0 вкладок, 0 форм, 0 чекбоксов, статус оплаты текстом; владелец — 4 вкладки и чекбоксы
 - [x] `npm test` — 12/12 (подпись initData: валидная/чужой токен/подмена/без hash/просрочка/плохой ID; валидация; периоды по Москве)
 - [x] `npm run test:e2e` — 5/5 против Postgres 16 в Docker: health, 401/403, auth/me, сидинг категорий, полный сценарий всех 15 эндпоинтов (CRUD, валидация, запреты удаления, аналитика day/month/custom, 404); тест убирает за собой
 - [x] `npm run build` — backend, bot, frontend (Vite) собираются

@@ -164,8 +164,10 @@ docker compose up -d --build     # весь стек (db, backend, frontend, bot
   (она в `backend/prisma`) и генерирует клиент-заглушку — все типы Prisma становятся `any`,
   typecheck падает с `implicitly has an 'any' type`.
 - **Вход локально** — только через `npm run dev:init-data` (подписанный тестовый initData).
-  Обхода проверки подписи нет и не добавлять. Токен в `.env` и в скрипте должен совпадать,
-  Telegram ID — входить в `ADMIN_TELEGRAM_IDS`.
+  Обхода проверки подписи нет и не добавлять. Токен в `.env` и в скрипте должен совпадать;
+  ID из `ADMIN_TELEGRAM_IDS` — владелец, любой другой (`--id 1001`) — зритель.
+- **Роли:** зрителю открыто только то, что в `viewerRoutes` (`backend/src/equipment.ts`); всё
+  остальное закрыто по умолчанию. Новый маршрут для зрителя — только осознанно, с тестом в `api.e2e.ts`.
 - **Порты на машине владельца (Windows):** 5432 занят Postgres от другого проекта — у Perevozki
   `DB_PORT=5433`; backend dev — 3010, Vite — 5180, Docker-фронтенд — 8080.
 - **`preview_start` в Claude Desktop** может читать `.claude/launch.json` другого проекта

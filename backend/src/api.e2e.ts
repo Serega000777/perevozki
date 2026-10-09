@@ -17,6 +17,8 @@ const server = createApp(prisma, true).listen(0);
 const tag = `e2e-${Date.now()}`;
 const created = { vehicles: [] as number[], categories: [] as number[] };
 const headers = { 'content-type': 'application/json', 'x-telegram-init-data': signInitData({ id: telegramId, first_name: 'E2E', last_name: 'Тест' }, token) };
+const viewerId = telegramId + 1;
+const viewer = { 'content-type': 'application/json', 'x-telegram-init-data': signInitData({ id: viewerId, first_name: 'Зритель' }, token) };
 const moscowDay = (offsetDays = 0) => new Date(Date.now() + 3 * 3600_000 + offsetDays * 86400_000).toISOString().slice(0, 10);
 let base = '';
 
@@ -36,7 +38,7 @@ after(async () => {
   await prisma.equipmentTrip.deleteMany({ where: { vehicleId } });
   await prisma.equipmentVehicle.deleteMany({ where: { id: vehicleId } });
   await prisma.equipmentExpenseCategory.deleteMany({ where: { id: { in: created.categories } } });
-  await prisma.user.deleteMany({ where: { telegramId: BigInt(telegramId) } });
+  await prisma.user.deleteMany({ where: { telegramId: { in: [BigInt(telegramId), BigInt(viewerId)] } } });
   server.close();
   await prisma.$disconnect();
 });
@@ -45,15 +47,26 @@ test('health проверяет БД и не требует авторизаци
   assert.deepEqual(await call('GET', '/health', undefined, {}), { status: 200, body: { status: 'ok' } });
 });
 
-test('без initData, с чужой подписью и с чужим ID — отказ', async () => {
-  assert.equal((await call('GET', '/api/equipment/vehicles', undefined, {})).status, 401);
+test('без initData и с чужой подписью — 401', async () => {
+  assert.equal((await call('GET', '/api/equipment/analytics', undefined, {})).status, 401);
   const wrongSignature = signInitData({ id: telegramId }, 'not-the-bot-token');
-  assert.equal((await call('GET', '/api/equipment/vehicles', undefined, { 'x-telegram-init-data': wrongSignature })).status, 401);
-  const stranger = signInitData({ id: telegramId + 1 }, token);
-  assert.deepEqual(await call('GET', '/api/equipment/vehicles', undefined, { 'x-telegram-init-data': stranger }), {
-    status: 403,
-    body: { error: 'Доступ запрещён' },
-  });
+  assert.equal((await call('GET', '/api/equipment/analytics', undefined, { 'x-telegram-init-data': wrongSignature })).status, 401);
+});
+
+test('зритель (не из ADMIN_TELEGRAM_IDS) видит только статистику', async () => {
+  const me = await call('GET', '/api/auth/me', undefined, viewer);
+  assert.deepEqual([me.status, me.body.role, me.body.name], [200, 'viewer', 'Зритель']);
+  assert.equal((await call('GET', '/api/equipment/analytics?period=month', undefined, viewer)).status, 200);
+  assert.equal((await call('GET', '/api/equipment/vehicles', undefined, viewer)).status, 200);
+  for (const path of ['/trips', '/expenses', '/categories', '/analytics/']) {
+    assert.deepEqual(
+      await call('GET', `/api/equipment${path}`, undefined, viewer),
+      { status: 403, body: { error: 'Доступен только просмотр статистики' } },
+      path,
+    );
+  }
+  assert.equal((await call('POST', '/api/equipment/vehicles', { name: `${tag} от зрителя` }, viewer)).status, 403);
+  assert.equal((await call('POST', '/api/equipment/categories', { name: `${tag} от зрителя` }, viewer)).status, 403);
 });
 
 test('auth/me создаёт пользователя с именем из Telegram', async () => {
@@ -61,6 +74,7 @@ test('auth/me создаёт пользователя с именем из Teleg
   assert.equal(status, 200);
   assert.equal(body.name, 'E2E Тест');
   assert.equal(body.telegramId, String(telegramId));
+  assert.equal(body.role, 'owner');
 });
 
 test('миграция заполнила стандартные категории расходов', async () => {
@@ -144,6 +158,15 @@ test('полный сценарий: техника → ходки → расх�
   const yesterday = moscowDay(-1);
   const empty = await call('GET', `/api/equipment/analytics?period=custom&from=${yesterday}&to=${yesterday}&vehicleId=${vehicleId}`);
   assert.deepEqual([empty.body.trips, empty.body.revenue, empty.body.byVehicle], [0, 0, []]);
+
+  // зритель видит ту же статистику, но ничего не может изменить
+  const viewerMonth = await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`, undefined, viewer);
+  assert.deepEqual([viewerMonth.body.revenue, viewerMonth.body.unpaid, viewerMonth.body.trips], [15000, 8000, 2]);
+  assert.equal((await call('PATCH', `/api/equipment/trips/${unpaidTrip.body.id}/paid`, { paid: true }, viewer)).status, 403);
+  assert.equal((await call('PATCH', `/api/equipment/vehicles/${vehicleId}`, { name: 'взлом' }, viewer)).status, 403);
+  assert.equal((await call('DELETE', `/api/equipment/expenses/${expense.body.id}`, undefined, viewer)).status, 403);
+  assert.equal((await call('DELETE', `/api/equipment/vehicles/${vehicleId}`, undefined, viewer)).status, 403);
+  assert.equal((await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`)).body.unpaid, 8000);
 
   // защита от удаления используемых записей
   assert.deepEqual((await call('DELETE', `/api/equipment/vehicles/${vehicleId}`)).body, { error: 'Нельзя удалить технику с ходками или расходами' });

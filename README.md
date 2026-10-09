@@ -15,6 +15,11 @@
 
 ## Возможности
 
+**Роли.** Владелец (`ADMIN_TELEGRAM_IDS`) видит всё и вносит правки. Любой другой пользователь,
+открывший бота, — зритель: видит только «Аналитику» (без переключения оплаты). Права проверяет
+сервер: зрителю открыты лишь `GET /api/equipment/analytics` и `GET /api/equipment/vehicles`
+(для фильтра), всё остальное — 403, включая новые маршруты по умолчанию.
+
 | Вкладка | Что умеет |
 |---|---|
 | Авто | добавить машину (название, госномер/описание), переименовать, удалить (если нет ходок/расходов) |
@@ -33,7 +38,7 @@ frontend/ (React 19 + Vite) — Mini App
 nginx (контейнер frontend): SPA + прокси /api и /health → backend:3000
      ▼
 backend/ (Node 22, Express 5, Prisma 6)
-     │  проверка подписи initData (HMAC по BOT_TOKEN, срок 24 ч) + белый список ADMIN_TELEGRAM_IDS
+     │  проверка подписи initData (HMAC по BOT_TOKEN, срок 24 ч) + роль: владелец (ADMIN_TELEGRAM_IDS) или зритель
      ▼
 PostgreSQL 16 — своя БД, схема через миграции Prisma
 ```
@@ -72,7 +77,7 @@ docker-compose.yml  весь стек: db, backend, frontend, bot
 | `NODE_ENV` | `development` локально; в контейнере backend всегда `production` |
 | `PORT` | порт backend вне Docker (по умолчанию 3010) |
 | `APP_URL` | публичный origin Mini App (CORS). **Обязателен в production** |
-| `ADMIN_TELEGRAM_IDS` | Telegram ID, которым разрешён вход, через запятую. **Обязателен в production** |
+| `ADMIN_TELEGRAM_IDS` | Telegram ID владельцев через запятую — только они вносят правки; остальные видят статистику. **Обязателен в production** |
 | `BOT_TOKEN` | токен бота; им же backend проверяет подпись initData. **Обязателен в production** |
 | `WEBAPP_URL` | HTTPS-адрес, который открывает кнопка бота. Обязателен для бота |
 | `API_URL` | база API, вшивается в сборку фронтенда (по умолчанию `/api`) |
@@ -99,8 +104,8 @@ npm run dev:init-data -- --name "Сергей"
 
 Скрипт подписывает тестовый initData тем же `BOT_TOKEN`, что в `.env` (локально это может быть
 любая строка), и печатает ссылку вида `http://localhost:5180/#tgWebAppData=...`. Открытая в
-браузере, она проходит ту же проверку, что и запуск из Telegram. Пользователь должен быть в
-`ADMIN_TELEGRAM_IDS` (по умолчанию скрипт берёт первый ID оттуда). Ссылка действует 24 часа.
+браузере, она проходит ту же проверку, что и запуск из Telegram. По умолчанию скрипт берёт первый ID
+из `ADMIN_TELEGRAM_IDS` (владелец); `--id <другой>` — вход зрителем. Ссылка действует 24 часа.
 
 ## База данных и миграции
 
@@ -153,7 +158,7 @@ Express 5 + Prisma 6. Все маршруты `/api/*` требуют загол
 
 1. Создать бота в @BotFather, токен → `BOT_TOKEN`.
 2. Mini App должен открываться по HTTPS: `WEBAPP_URL=https://<домен>` (обычно = `APP_URL`).
-3. Свои Telegram ID → `ADMIN_TELEGRAM_IDS` (узнать можно у @userinfobot).
+3. Telegram ID владельцев → `ADMIN_TELEGRAM_IDS` (узнать можно у @userinfobot); остальные — зрители.
 4. Бот (`bot/`) при старте ставит команду `/start` и кнопку меню «Открыть», на `/start`
    отвечает кнопкой Mini App. Работает через long polling — входящий вебхук не нужен, но
    серверу нужен доступ к `api.telegram.org`.
