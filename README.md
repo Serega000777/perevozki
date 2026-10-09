@@ -188,4 +188,6 @@ e2e-тесты создают записи с уникальными имена�
 ## Deployment
 
 Planned — VPS deployment will be configured in a later milestone.
-Заготовки и чек-лист — [infra/README.md](infra/README.md).
+
+Цель: `https://perevozki.crm-cement.ru` на общем VPS за общим Caddy
+([ADR 0002](docs/decisions/0002-hosting-subdomain-shared-vps.md)). Пошагово — [infra/README.md](infra/README.md).

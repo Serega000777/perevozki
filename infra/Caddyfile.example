@@ -1,6 +1,0 @@
-# Вариант Б: свой Caddy на хосте перед docker compose (HTTPS выпускается автоматически).
-# Замените perevozki.example.ru на реальный домен. На сервере не проверено (M4).
-perevozki.example.ru {
-  encode zstd gzip
-  reverse_proxy 127.0.0.1:8080
-}

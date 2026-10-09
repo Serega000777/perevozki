@@ -1,6 +1,6 @@
 # Оверлей для VPS с общим reverse proxy (сеть public_proxy, как у Cement CRM).
 # docker compose -f docker-compose.yml -f infra/docker-compose.proxy.yml up -d --build
-# На сервере не проверено (M4).
+# Сайт-блок для общего Caddy — infra/caddy/perevozki.crm-cement.ru.caddy. На сервере не проверено (M4).
 services:
   frontend:
     networks:

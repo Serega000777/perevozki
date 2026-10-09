@@ -1,0 +1,15 @@
+# Сайт-блок для общего Caddy на VPS 212.113.109.151 (контейнер web проекта Amola держит 80/443).
+# Фронтенд Perevozki подключён к сети public_proxy с алиасом perevozki-web
+# (infra/docker-compose.proxy.yml); nginx внутри отдаёт Mini App и проксирует /api и /health.
+# Сертификат Let's Encrypt Caddy выпустит сам, когда DNS указывает на этот сервер.
+perevozki.crm-cement.ru {
+	encode zstd gzip
+
+	# Mini App открывается во фрейме web.telegram.org; остальным встраивать нельзя.
+	header Content-Security-Policy "frame-ancestors 'self' https://web.telegram.org https://telegram.org"
+	header X-Content-Type-Options nosniff
+	header Referrer-Policy strict-origin-when-cross-origin
+	header -Server
+
+	reverse_proxy perevozki-web:80
+}

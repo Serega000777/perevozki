@@ -9,7 +9,8 @@
 **M1 (Standalone parity) — локально работает.** Раздел «Техника» Cement CRM перенесён в
 самостоятельное приложение: своя БД (Prisma-миграции с нуля), API 1:1, Mini App 1:1,
 отдельный бот, Docker Compose. Код не ссылается на Cement CRM. Production-деплоя нет (M4),
-Telegram-бот не создан (нужен токен владельца).
+Telegram-бот не создан (нужен токен владельца). Хостинг решён: поддомен
+`https://perevozki.crm-cement.ru` на общем VPS `212.113.109.151` (ADR 0002), конфиги готовы, на сервер не выкладывалось.
 
 ## Уже реализовано
 
@@ -23,6 +24,8 @@ Telegram-бот не создан (нужен токен владельца).
 - [x] Mini App: вкладки Авто / Ходки / Расходы / Аналитика, детализация, стили Cement CRM
 - [x] Скрипт переноса данных техники из БД Cement CRM (`scripts/import-from-cement.sh`)
 - [x] Docker: `docker-compose.yml` (db, backend, frontend+nginx, bot), healthchecks, том `postgres_data`
+- [x] Хостинг: решение владельца — поддомен на общем VPS; ADR 0002, сайт-блок для общего Caddy, пошаговый деплой в `infra/README.md`
+- [ ] Деплой на VPS — не выполнялся (нужны подтверждение владельца и токен бота)
 - [ ] Telegram-бот против настоящего Telegram — **не проверен** (нет токена, `api.telegram.org` с этой машины недоступен)
 
 ## Перенесено из Cement CRM
@@ -60,8 +63,8 @@ Telegram-бот не создан (нужен токен владельца).
 - `frontend/`: `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `nginx.conf`, `Dockerfile`, `src/{App,Equipment,main}.tsx`, `src/{api,vite-env.d}.ts`, `src/styles.css`
 - `bot/`: `package.json`, `tsconfig.json`, `Dockerfile`, `src/index.ts`
 - `scripts/dev-init-data.mjs`, `scripts/import-from-cement.sh`
-- `infra/README.md`, `infra/docker-compose.proxy.yml`, `infra/Caddyfile.example`
-- `docs/cement-source-analysis.md`, `docs/decisions/0001-extract-from-cement-crm.md`
+- `infra/README.md`, `infra/docker-compose.proxy.yml`, `infra/caddy/perevozki.crm-cement.ru.caddy`
+- `docs/cement-source-analysis.md`, `docs/decisions/0001-extract-from-cement-crm.md`, `docs/decisions/0002-hosting-subdomain-shared-vps.md`
 - `README.md`, `AGENTS.md`, `CLAUDE.md`, `AGENT_DONE.md`, `AGENT_TODO.md`
 
 ## База данных
@@ -92,6 +95,8 @@ Telegram-бот не создан (нужен токен владельца).
 - [x] Production-сборка Mini App в браузере через контейнер: вход, создание машины с кириллицей, стили загружены, ошибок нет
 - [x] Образ бота запускается и без `WEBAPP_URL` завершается с понятной ошибкой
 - [x] `docker compose -f docker-compose.yml -f infra/docker-compose.proxy.yml config` — оверлей валиден (на VPS не запускался)
+- [x] `caddy adapt` (caddy:2-alpine) разбирает `infra/caddy/perevozki.crm-cement.ru.caddy`: host `perevozki.crm-cement.ru` → `perevozki-web:80`
+- [x] DNS (8.8.8.8): `perevozki.crm-cement.ru` → `212.113.109.151` (= `amola-finance.ru`), wildcard нет
 
 ## Git
 
@@ -104,6 +109,10 @@ Telegram-бот не создан (нужен токен владельца).
 
 ## Известные проблемы
 
+- `crm-cement.ru` в DNS указывает на `31.77.197.107`, а не на общий VPS `212.113.109.151`; из сети
+  машины владельца 2026-10-09 HTTPS не поднимался (TLS-ошибка), HTTP отвечал 503. Где фактически
+  работает Cement — не проверено (на сервер не заходили).
+
 - Бот не проверен против настоящего Telegram (нет токена; с машины владельца `api.telegram.org` недоступен).
 - `npm audit`: 3 high в `deepmerge-ts` внутри Prisma CLI (dev-инструмент, пользовательский ввод не обрабатывает). Исправление только понижением Prisma — не делали.
 - Перенесённые как есть особенности источника — см. AGENT_TODO.md (M2/M3): float в суммах, «сегодня» в UTC, правка через `prompt()`, нет пагинации.
@@ -114,6 +123,8 @@ Telegram-бот не создан (нужен токен владельца).
 См. [ADR 0001](docs/decisions/0001-extract-from-cement-crm.md): стек как в источнике; имена
 таблиц сохранены ради переноса данных; init-миграция с нуля; бот — отдельный сервис; вход
 только по подписи initData (без обхода); один публичный порт (nginx фронтенда проксирует API).
+[ADR 0002](docs/decisions/0002-hosting-subdomain-shared-vps.md): поддомен `perevozki.crm-cement.ru` на общем
+VPS за Caddy проекта Amola (сеть `public_proxy`, алиас `perevozki-web`).
 
 ## Что НЕ трогать
 
