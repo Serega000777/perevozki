@@ -6,46 +6,56 @@
 
 ## Следующая задача
 
-M1 — Standalone parity: перенести раздел «Техника» из Cement CRM (`1f1779a`) в Perevozki
-по плану из [`docs/cement-source-analysis.md`](docs/cement-source-analysis.md).
+**Получить от владельца Telegram-данные и проверить бота + Mini App в настоящем Telegram**
+(см. «Требует ручного действия владельца»). Без этого M1 нельзя считать закрытым полностью.
+Пока данных нет — можно браться за M2 (ниже), не трогая поведение.
 
-## P0 — критично (M1 — Standalone parity)
+## P0 — критично (закрыть M1)
 
-- [ ] npm workspaces: `backend/`, `frontend/`, `bot/`
-- [ ] Prisma-схема и init-миграция: `User` + 4 таблицы техники (имена как в источнике), сидинг категорий
-- [ ] Backend: проверка initData, `/api/auth/me`, `/api/equipment/*` 1:1, error handler, `/health`
-- [ ] Frontend: Mini App с экраном «Техника» 1:1
-- [ ] Bot: отдельный сервис, `/start` + кнопка меню с Mini App
-- [ ] Docker: `docker-compose.yml` (db, backend, frontend, bot), healthchecks, volumes
-- [ ] Проверки: typecheck, unit-тесты, API-тесты на реальной БД, сборка, Docker, UI в браузере
+- [ ] Проверить бота с настоящим `BOT_TOKEN` на машине/сервере с доступом к `api.telegram.org`: `/start`, кнопка меню, открытие Mini App, вход по initData из Telegram
+- [ ] Проверить Mini App внутри Telegram (iOS/Android): `prompt()`/`confirm()` для правки и удаления работают ли в WebView (в Cement использовались — вероятно да, но в Perevozki не проверено)
 
 ## P1 — необходимо
 
-- [ ] Скрипт переноса данных техники из БД Cement CRM в БД Perevozki
-- [ ] README: запуск, окружение, БД, тесты, Docker
+- [ ] CI (GitHub Actions): `npm ci`, `npm run db:generate`, typecheck, `npm test`, e2e на сервисе Postgres, `npm run build`, `format:check`
+- [ ] Перенос боевых данных из Cement CRM — на VPS по команде владельца: `scripts/import-from-cement.sh` (проверен только на симуляции)
+- [ ] Бэкапы БД (`pg_dump` по расписанию) — вместе с M4
 
-## P2 — улучшения (M2/M3, только после M1)
+## P2 — улучшения
 
-- [ ] Денежная арифметика без float
-- [ ] «Сегодня» по Москве на фронтенде
-- [ ] Правка записей формой вместо `prompt()`, показ ошибок
+M2 — Cleanup (без изменения поведения):
+- [ ] Денежная арифметика без float: суммы в аналитике считаются `Number()` по `Decimal` → Prisma `Decimal`/копейки
+- [ ] Сообщение P2002 (дубликат категории) показывается пользователю на английском — заменить на понятный текст
+- [ ] Поле `EquipmentVehicle.active` в схеме не используется — решить: архив машин или удалить
+- [ ] Решить про переименование таблиц (`Vehicle`, `Trip`, …) — только после переноса боевых данных
+
+M3 — Improvements:
+- [ ] «Сегодня» в формах считается в UTC (`toISOString`) — с 00:00 до 03:00 МСК подставляется вчера
+- [ ] Правка через `prompt()`: нельзя сменить машину/дату/категорию; часть ошибок не показывается (нет `try/catch` в `edit`/`toggle`) — сделать формы
+- [ ] Пагинация/фильтры истории ходок и расходов (сейчас отдаётся всё)
+- [ ] Размер бандла 467 КБ (gzip 136 КБ) — проверить tree-shaking `lucide-react`
 
 ## Заблокировано
 
-Нет.
+### Проверка бота и Mini App в Telegram
+Причина: нет `BOT_TOKEN`; с машины владельца `api.telegram.org` недоступен (ETIMEDOUT).
+Что требуется от пользователя: создать бота и дать токен (в `.env` на машине/VPS, не в чат и не в git); HTTPS-URL для Mini App.
 
 ## Требует ручного действия владельца
 
-- [ ] Создать Telegram-бота для Perevozki в @BotFather, получить `BOT_TOKEN`
-- [ ] Выбрать домен/поддомен для Mini App, настроить DNS
-- [ ] Назвать Telegram ID пользователей, которым разрешён вход (`ADMIN_TELEGRAM_IDS`)
+- [ ] Создать Telegram-бота для Perevozki в @BotFather → `BOT_TOKEN` (положить в `.env`, не коммитить)
+- [ ] Назвать свои Telegram ID для входа → `ADMIN_TELEGRAM_IDS`
+- [ ] Выбрать домен/поддомен для Mini App и настроить DNS на VPS
+- [ ] Решить: Perevozki на том же VPS, что Cement CRM (общий прокси `public_proxy`), или отдельно
+- [ ] Дать команду на перенос боевых данных техники из Cement CRM (и решить, убирать ли потом раздел «Техника» из Cement — это изменение Cement, только с отдельного разрешения)
 
-## Deployment (M4, отдельный этап — сейчас не выполнять)
+## Deployment (M4 — отдельный этап, без команды владельца не начинать)
 
-- [ ] Подготовить VPS
-- [ ] Docker Compose на VPS
-- [ ] Reverse proxy + HTTPS
-- [ ] Telegram Mini App production URL
+- [ ] Подготовить VPS (Docker, клон репозитория, `.env` с `NODE_ENV=production`)
+- [ ] `docker compose -f docker-compose.yml -f infra/docker-compose.proxy.yml up -d --build` (или свой Caddy — `infra/Caddyfile.example`)
+- [ ] Reverse proxy + HTTPS для домена
+- [ ] Telegram Mini App production URL: `APP_URL`/`WEBAPP_URL`, кнопка меню бота
+- [ ] Если Telegram покажет старую сборку — в Cement помогал версионный путь в URL кнопки (`/app-<дата>`); nginx уже отдаёт SPA на любом пути
 
 ## Позже
 

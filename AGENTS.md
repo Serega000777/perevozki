@@ -152,6 +152,31 @@ docker compose up -d --build     # весь стек (db, backend, frontend, bot
 
 Точные порты, переменные и сценарии проверки — в README.
 
+## Подводные камни (уже наступали)
+
+- **После `npm install` всегда `npm run db:generate`.** Prisma ищет схему в корне, не находит
+  (она в `backend/prisma`) и генерирует клиент-заглушку — все типы Prisma становятся `any`,
+  typecheck падает с `implicitly has an 'any' type`.
+- **Вход локально** — только через `npm run dev:init-data` (подписанный тестовый initData).
+  Обхода проверки подписи нет и не добавлять. Токен в `.env` и в скрипте должен совпадать,
+  Telegram ID — входить в `ADMIN_TELEGRAM_IDS`.
+- **Порты на машине владельца (Windows):** 5432 занят Postgres от другого проекта — у Perevozki
+  `DB_PORT=5433`; backend dev — 3010, Vite — 5180, Docker-фронтенд — 8080.
+- **`preview_start` в Claude Desktop** может читать `.claude/launch.json` другого проекта
+  (той папки, из которой открыта сессия). Не правь чужой `launch.json` — запусти `npm run dev`
+  фоном и открой `preview_start` с `url`.
+- **Сеть машины владельца медленная** (npm/Docker Hub ~100 КБ/с): `npm install` и первая
+  `docker compose build` занимают десятки минут — запускай в фоне. В Dockerfile уже есть
+  кэш npm (`RUN --mount=type=cache`).
+- **`api.telegram.org` с машины владельца недоступен** (ETIMEDOUT) — бота локально не проверить,
+  только на VPS.
+- **CRLF:** `core.autocrlf=true` на Windows; `.gitattributes` форсирует LF (важно для `.sh` и
+  Dockerfile). Скрипты запускать через `sh scripts/...` (Git Bash).
+- **e2e-тесты** пишут в БД из `DATABASE_URL`, но только свои записи с уникальными именами и
+  удаляют их; лимитов и общих пользователей нет.
+- **curl из Git Bash** портит кириллицу в `-d '{...}'` (кодировка консоли) — для ручных
+  API-проверок с кириллицей используй браузер или Node.
+
 ## Стиль кода
 
 - Стек и поведение — как в источнике (Cement CRM), пока не решено иначе (см. ADR).
