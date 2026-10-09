@@ -86,12 +86,21 @@ Telegram-бот не создан (нужен токен владельца).
 - [x] Без initData API отвечает 401
 - [x] `scripts/import-from-cement.sh` на симуляции БД Cement (схема — настоящая миграция техники из Cement, тестовые данные с «дыркой» в id и своей категорией): отказ при непустой БД; успешный импорт 2/2/6/2; суммы в аналитике совпали; новые id идут после импортированных; повторный запуск падает (exit 3); посторонние таблицы не переносятся
 - [x] Бот: без `BOT_TOKEN`/`WEBAPP_URL` завершается с понятной ошибкой (exit 1); с поддельным токеном доходит до запроса к `api.telegram.org` (там ETIMEDOUT — Telegram недоступен с этой машины)
-- [ ] Docker: см. раздел ниже
+- [x] `docker compose build backend frontend bot` — все три образа собираются (первая сборка ~25 мин из-за медленной сети, повторная — из кэша)
+- [x] `docker compose up -d --build db backend frontend` — все `healthy`; backend при старте выполняет `prisma migrate deploy` и слушает 3000 с `NODE_ENV=production`
+- [x] Через nginx на `127.0.0.1:8080`: `/health` → 200; `/api/*` без initData → 401; чужой Telegram ID → 403; подписанный initData → 200 (`/api/auth/me`, категории); `index.html` с `Cache-Control: no-store`; произвольный путь (`/app-20261009`) отдаёт SPA
+- [x] Production-сборка Mini App в браузере через контейнер: вход, создание машины с кириллицей, стили загружены, ошибок нет
+- [x] Образ бота запускается и без `WEBAPP_URL` завершается с понятной ошибкой
+- [x] `docker compose -f docker-compose.yml -f infra/docker-compose.proxy.yml config` — оверлей валиден (на VPS не запускался)
 
 ## Git
 
-Ветка работы: `feature/extract-vehicles` → merge в `main`.
-Последний рабочий commit: см. `git log --oneline -1` в `main`.
+Последний проверенный commit с кодом:
+
+`b122032 — feat: add Cement CRM equipment data import script` (после него — только документация)
+
+Текущая ветка: `main` (работа велась в `feature/extract-vehicles`, влита через `git merge --no-ff`;
+ветка оставлена на GitHub как история).
 
 ## Известные проблемы
 
