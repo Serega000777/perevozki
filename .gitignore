@@ -1,0 +1,26 @@
+# зависимости и сборка
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# окружение и секреты — никогда не в git
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# дампы и бэкапы БД
+*.dump
+*.backup
+backups/
+
+# логи и IDE
+*.log
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

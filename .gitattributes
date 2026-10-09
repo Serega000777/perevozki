@@ -1,0 +1,6 @@
+# LF везде: скрипты и Dockerfile исполняются в Linux-контейнерах и на VPS
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
