@@ -17,9 +17,16 @@ export default function App() {
           <span className="eyebrow">{me ? `${me.name}${me.role === 'owner' ? '' : ' · просмотр'}` : 'Учёт техники'}</span>
           <h1>Перевозки</h1>
         </div>
-        <div className="avatar">П</div>
       </header>
-      {error ? <div className="alert">{error}</div> : me ? <Equipment readOnly={me.role !== 'owner'} /> : <div className="loader">Загружаем…</div>}
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : me ? (
+        <Equipment readOnly={me.role !== 'owner'} />
+      ) : (
+        <p className="loading">Загружаем…</p>
+      )}
     </main>
   );
 }
