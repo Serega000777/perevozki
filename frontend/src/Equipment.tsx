@@ -8,11 +8,12 @@ import { ErrorNote, errorText } from './equipment/ui';
 import { Vehicles } from './equipment/Vehicles';
 
 type Tab = 'trips' | 'expenses' | 'analytics' | 'vehicles';
+// «Авто» первой — как привык владелец; открывается при этом вкладка «Ходки».
 const tabs: [Tab, string][] = [
+  ['vehicles', 'Авто'],
   ['trips', 'Ходки'],
   ['expenses', 'Расходы'],
   ['analytics', 'Аналитика'],
-  ['vehicles', 'Авто'],
 ];
 
 // readOnly — зритель: видит только статистику; права всё равно проверяет сервер.
