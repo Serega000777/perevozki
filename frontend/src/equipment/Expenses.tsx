@@ -1,26 +1,59 @@
 import { useState, type FormEvent } from 'react';
+import { Coins, FilePlus2, FileText, Tags, Truck } from 'lucide-react';
 import { api } from '../api';
-import { groupByDay, groupByVehicle, lastAddedDay, plural, rub, sum } from '../lib/format';
+import { groupBy, groupByDay, groupByVehicle, lastAddedDay, plural, rub, sum } from '../lib/format';
 import { expenseDraft, ExpenseForm, expensePayload, newExpense, rememberVehicle, type ExpenseDraft } from './forms';
 import type { Category, Expense, Vehicle } from './types';
-import { Choice, DayGroup, DeleteButton, Empty, ErrorNote, errorText, haptic, MoreButton, PAGE, Row, Sheet } from './ui';
+import {
+  Card,
+  CategoryIcon,
+  Choice,
+  DayGroup,
+  DeleteButton,
+  Empty,
+  ErrorNote,
+  errorText,
+  haptic,
+  IconTile,
+  MoreButton,
+  PAGE,
+  Row,
+  SectionHead,
+  Sheet,
+  Stats,
+} from './ui';
 
 type Filter = number | 'all';
 
 export const recordsLabel = (n: number) => `${n} ${plural(n, ['запись', 'записи', 'записей'])}`;
 
-// Расходы по дням; заголовок строки — категория или машина, в зависимости от того, что уже известно из контекста.
-export function ExpenseDays({ expenses, title, onOpen }: { expenses: Expense[]; title: (x: Expense) => string; onOpen?: (x: Expense) => void }) {
+// Расходы по дням: иконка и название категории, комментарий серым; заголовок строки зависит от контекста.
+export function ExpenseDays({
+  expenses,
+  title = (x) => x.category.name,
+  onOpen,
+}: {
+  expenses: Expense[];
+  title?: (x: Expense) => string;
+  onOpen?: (x: Expense) => void;
+}) {
   return (
-    <div className="ledger">
+    <>
       {groupByDay(expenses).map(({ day, rows }) => (
-        <DayGroup day={day} total={rows.length > 1 ? sum(rows, (x) => x.amount) : undefined} key={day}>
+        <DayGroup day={day} total={sum(rows, (x) => x.amount)} key={day}>
           {rows.map((x) => (
-            <Row key={x.id} title={title(x)} meta={x.comment} amount={x.amount} onOpen={onOpen && (() => onOpen(x))} />
+            <Row
+              key={x.id}
+              icon={<CategoryIcon name={x.category.name} />}
+              title={title(x)}
+              meta={x.comment}
+              amount={x.amount}
+              onOpen={onOpen && (() => onOpen(x))}
+            />
           ))}
         </DayGroup>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -43,7 +76,18 @@ export function Expenses({
   const filtered = filter === 'all' ? expenses : expenses.filter((x) => x.vehicleId === filter);
   const lastDate = lastAddedDay(expenses);
   const shown = [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, limit);
-  const groups = filter === 'all' ? groupByVehicle(shown, vehicles) : [{ vehicle: null, rows: shown }];
+  const groups =
+    filter === 'all'
+      ? groupByVehicle(shown, vehicles)
+      : groupByVehicle(
+          shown,
+          vehicles.filter((v) => v.id === filter),
+        );
+  const top = groupBy(
+    expenses,
+    (x) => x.vehicle.name,
+    (x) => Number(x.amount),
+  )[0];
 
   const create = async (d: ExpenseDraft) => {
     await api('/equipment/expenses', { method: 'POST', body: JSON.stringify(expensePayload(d)) });
@@ -69,8 +113,22 @@ export function Expenses({
 
   return (
     <>
-      <section className="block">
-        <h2>Новый расход</h2>
+      <Stats
+        items={[
+          { icon: <FileText />, value: expenses.length, unit: plural(expenses.length, ['запись', 'записи', 'записей']), sub: 'всего' },
+          { icon: <Coins />, value: rub(sum(expenses, (x) => x.amount)), sub: 'все расходы' },
+          { icon: <Truck />, value: top ? rub(top.total) : '—', sub: top?.name ?? 'больше всех' },
+        ]}
+      />
+
+      <Card
+        icon={
+          <IconTile>
+            <FilePlus2 />
+          </IconTile>
+        }
+        title="Новый расход"
+      >
         {vehicles.length && categories.length ? (
           <ExpenseForm
             vehicles={vehicles}
@@ -84,45 +142,38 @@ export function Expenses({
         ) : (
           <Empty>Нужны хотя бы одна машина (вкладка «Авто») и одна категория (ниже).</Empty>
         )}
-      </section>
+      </Card>
 
-      <section className="block">
-        <div className="block-head">
-          <h2>История расходов</h2>
-          <span className="block-total">
-            {recordsLabel(filtered.length)} · {rub(sum(filtered, (x) => x.amount))}
-          </span>
-        </div>
-        {vehicles.length > 1 && (
-          <Choice
-            options={[{ value: 'all' as Filter, label: 'Все машины' }, ...vehicles.map((v) => ({ value: v.id as Filter, label: v.name }))]}
-            value={filter}
-            onChange={(v) => {
-              setFilter(v);
-              setLimit(PAGE);
-            }}
-          />
-        )}
-        {!editing && <ErrorNote>{error}</ErrorNote>}
-        {!filtered.length && <Empty>Расходов пока нет.</Empty>}
-        {groups.map(({ vehicle, rows }) => {
-          const all = vehicle ? filtered.filter((x) => x.vehicleId === vehicle.id) : filtered;
-          return (
-            <div className="vehicle-group" key={vehicle?.id ?? 'one'}>
-              {vehicle && (
-                <h3 className="vehicle-head">
-                  <span>{vehicle.name}</span>
-                  <span>
-                    {recordsLabel(all.length)} · {rub(sum(all, (x) => x.amount))}
-                  </span>
-                </h3>
-              )}
-              <ExpenseDays expenses={rows} title={(x) => x.category.name} onOpen={setEditing} />
+      <SectionHead title="История расходов" aside={`${recordsLabel(filtered.length)} • ${rub(sum(filtered, (x) => x.amount))}`} />
+      {vehicles.length > 1 && (
+        <Choice
+          options={[{ value: 'all' as Filter, label: 'Все машины' }, ...vehicles.map((v) => ({ value: v.id as Filter, label: v.name }))]}
+          value={filter}
+          onChange={(v) => {
+            setFilter(v);
+            setLimit(PAGE);
+          }}
+        />
+      )}
+      {!editing && <ErrorNote>{error}</ErrorNote>}
+      {!filtered.length && <Empty>Расходов пока нет.</Empty>}
+      {groups.map(({ vehicle, rows }) => {
+        const all = filtered.filter((x) => x.vehicleId === vehicle.id);
+        return (
+          <section className="card ledger-card" key={vehicle.id}>
+            <div className="ledger-card-head">
+              <h3>{vehicle.name}</h3>
+              <span>
+                {recordsLabel(all.length)} • {rub(sum(all, (x) => x.amount))}
+              </span>
             </div>
-          );
-        })}
-        <MoreButton shown={shown.length} total={filtered.length} onMore={() => setLimit((n) => n + PAGE)} />
-      </section>
+            <div className="ledger plain">
+              <ExpenseDays expenses={rows} onOpen={setEditing} />
+            </div>
+          </section>
+        );
+      })}
+      <MoreButton shown={shown.length} total={filtered.length} onMore={() => setLimit((n) => n + PAGE)} />
 
       <Categories categories={categories} expenses={expenses} reload={reload} />
 
@@ -175,14 +226,21 @@ function Categories({ categories, expenses, reload }: { categories: Category[]; 
     }
   };
   return (
-    <section className="block">
-      <h2>Категории расходов</h2>
-      <div className="ledger">
+    <Card
+      icon={
+        <IconTile>
+          <Tags />
+        </IconTile>
+      }
+      title="Категории расходов"
+    >
+      <div className="ledger plain">
         {categories.map((c) => {
           const used = expenses.filter((x) => x.categoryId === c.id).length;
           return (
             <Row
               key={c.id}
+              icon={<CategoryIcon name={c.name} />}
               title={c.name}
               meta={used ? `используется: ${recordsLabel(used)}` : 'не используется'}
               side={!used && <DeleteButton small label="Удалить" onConfirm={() => remove(c)} />}
@@ -197,6 +255,6 @@ function Categories({ categories, expenses, reload }: { categories: Category[]; 
         </button>
       </form>
       <ErrorNote>{error}</ErrorNote>
-    </section>
+    </Card>
   );
 }

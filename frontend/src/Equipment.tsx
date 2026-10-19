@@ -1,29 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ChartNoAxesColumn, Fuel, RefreshCw, Route, Truck } from 'lucide-react';
 import { api } from './api';
+import { PageHeader } from './brand';
 import { Analytics } from './equipment/Analytics';
 import { Expenses } from './equipment/Expenses';
 import { Trips } from './equipment/Trips';
 import type { Category, Expense, Trip, Vehicle } from './equipment/types';
-import { ErrorNote, errorText } from './equipment/ui';
+import { ErrorNote, errorText, Sheet } from './equipment/ui';
 import { Vehicles } from './equipment/Vehicles';
 
-type Tab = 'trips' | 'expenses' | 'analytics' | 'vehicles';
-// «Авто» первой — как привык владелец; открывается при этом вкладка «Ходки».
-const tabs: [Tab, string][] = [
-  ['vehicles', 'Авто'],
-  ['trips', 'Ходки'],
-  ['expenses', 'Расходы'],
-  ['analytics', 'Аналитика'],
+export type Me = { name: string; role: 'owner' | 'viewer' };
+type Tab = 'vehicles' | 'trips' | 'expenses' | 'analytics';
+
+const tabs: { key: Tab; label: string; icon: ReactNode; subtitle: string }[] = [
+  { key: 'vehicles', label: 'Авто', icon: <Truck />, subtitle: 'Ваш автопарк, ходки, расходы и аналитика в одном месте' },
+  { key: 'trips', label: 'Ходки', icon: <Route />, subtitle: 'Записывайте ходки и контролируйте доходы с каждого рейса' },
+  { key: 'expenses', label: 'Расходы', icon: <Fuel />, subtitle: 'Учитывайте расходы и контролируйте затраты по каждой машине' },
+  { key: 'analytics', label: 'Аналитика', icon: <ChartNoAxesColumn />, subtitle: 'Смотрите выручку, расходы и эффективность по автопарку и каждой машине' },
 ];
 
-// readOnly — зритель: видит только статистику; права всё равно проверяет сервер.
-export function Equipment({ readOnly }: { readOnly: boolean }) {
-  const [tab, setTab] = useState<Tab>('trips');
+// Зритель видит только аналитику; права всё равно проверяет сервер.
+export function Equipment({ me }: { me: Me }) {
+  const readOnly = me.role !== 'owner';
+  const [tab, setTab] = useState<Tab>(readOnly ? 'analytics' : 'trips');
+  const [menu, setMenu] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState('');
+  const [version, setVersion] = useState(0);
 
   const load = async () => {
     try {
@@ -38,6 +44,7 @@ export function Equipment({ readOnly }: { readOnly: boolean }) {
       setExpenses(e);
       setCategories(c);
       setError('');
+      setVersion((n) => n + 1);
     } catch (x) {
       setError(errorText(x));
     }
@@ -46,31 +53,66 @@ export function Equipment({ readOnly }: { readOnly: boolean }) {
     load();
   }, []);
 
-  if (!vehicles) return error ? <ErrorNote>{error}</ErrorNote> : <p className="loading">Загружаем…</p>;
-  if (readOnly) return <Analytics vehicles={vehicles} readOnly />;
+  const open = (key: Tab) => {
+    setTab(key);
+    setMenu(false);
+    window.scrollTo(0, 0);
+  };
+  const current = tabs.find((t) => t.key === tab)!;
+
   return (
     <>
-      <nav className="equipment-tabs" role="tablist">
-        {tabs.map(([key, label]) => (
-          <button
-            role="tab"
-            aria-selected={tab === key}
-            className={tab === key ? 'selected' : ''}
-            onClick={() => {
-              setTab(key);
-              window.scrollTo(0, 0);
-            }}
-            key={key}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      <PageHeader subtitle={current.subtitle} onMenu={() => setMenu(true)} />
+      {!readOnly && (
+        <nav className="tabs" role="tablist">
+          {tabs.map((t) => (
+            <button role="tab" aria-selected={tab === t.key} className={tab === t.key ? 'tab on' : 'tab'} onClick={() => open(t.key)} key={t.key}>
+              {t.icon}
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
       <ErrorNote>{error}</ErrorNote>
-      {tab === 'trips' && <Trips vehicles={vehicles} trips={trips} reload={load} />}
-      {tab === 'expenses' && <Expenses vehicles={vehicles} expenses={expenses} categories={categories} reload={load} />}
-      {tab === 'analytics' && <Analytics vehicles={vehicles} />}
-      {tab === 'vehicles' && <Vehicles vehicles={vehicles} trips={trips} expenses={expenses} reload={load} />}
+      {!vehicles ? (
+        !error && <p className="loading">Загружаем…</p>
+      ) : (
+        <>
+          {tab === 'vehicles' && <Vehicles vehicles={vehicles} trips={trips} expenses={expenses} reload={load} />}
+          {tab === 'trips' && <Trips vehicles={vehicles} trips={trips} reload={load} />}
+          {tab === 'expenses' && <Expenses vehicles={vehicles} expenses={expenses} categories={categories} reload={load} />}
+          {tab === 'analytics' && <Analytics vehicles={vehicles} readOnly={readOnly} version={version} />}
+        </>
+      )}
+      {menu && (
+        <Sheet title="Меню" onClose={() => setMenu(false)}>
+          <div className="menu-user">
+            <strong>{me.name}</strong>
+            <span>{readOnly ? 'Просмотр: только аналитика' : 'Владелец: вносит ходки и расходы'}</span>
+          </div>
+          {!readOnly && (
+            <div className="menu-list">
+              {tabs.map((t) => (
+                <button type="button" className={tab === t.key ? 'menu-item on' : 'menu-item'} onClick={() => open(t.key)} key={t.key}>
+                  {t.icon}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            className="secondary menu-refresh"
+            onClick={() => {
+              setMenu(false);
+              load();
+            }}
+          >
+            <RefreshCw aria-hidden />
+            Обновить данные
+          </button>
+        </Sheet>
+      )}
     </>
   );
 }

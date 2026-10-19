@@ -1,34 +1,43 @@
 import { useEffect, useState } from 'react';
+import { CalendarDays, ChartNoAxesColumn, ChartPie, ChevronDown, Coins, Percent, Trophy, Truck, Wallet } from 'lucide-react';
 import { api } from '../api';
 import { groupBy, rub, sum, todayKey } from '../lib/format';
+import { bestMonth, monthTitle, revenueSeries } from '../lib/series';
+import { Donut, DONUT_COLORS, LineChart } from './charts';
 import { ExpenseDays, recordsLabel } from './Expenses';
 import { TripDays, tripsLabel } from './Trips';
 import type { Analytics as Data, Trip, Vehicle } from './types';
-import { Empty, ErrorNote, errorText, Field, haptic, Row, Sheet } from './ui';
+import { Card, Empty, ErrorNote, errorText, Field, haptic, IconTile, Row, Sheet, Stats } from './ui';
 
 type Detail = { kind: 'revenue' | 'expenses'; group?: string } | { kind: 'vehicle'; id: number };
 
 const periods = [
-  { value: 'day', label: 'День' },
-  { value: 'week', label: 'Неделя' },
-  { value: 'month', label: 'Месяц' },
-  { value: 'all', label: 'Всё время' },
-  { value: 'custom', label: 'Свои даты' },
+  { value: 'day', label: 'День', title: 'Обзор за день' },
+  { value: 'week', label: 'Неделя', title: 'Обзор за неделю' },
+  { value: 'month', label: 'Месяц', title: 'Обзор за месяц' },
+  { value: 'all', label: 'Всё время', title: 'Обзор за всё время' },
+  { value: 'custom', label: 'Свои даты', title: 'Обзор за период' },
 ];
 
-export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[]; readOnly?: boolean }) {
+export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicles: Vehicle[]; readOnly?: boolean; version?: number }) {
   const [period, setPeriod] = useState('month');
   const [vehicleId, setVehicleId] = useState('all');
   const [from, setFrom] = useState(todayKey());
   const [to, setTo] = useState(todayKey());
   const [data, setData] = useState<Data | null>(null);
+  const [allTime, setAllTime] = useState<Data | null>(null);
   const [error, setError] = useState('');
   const [detail, setDetail] = useState<Detail | null>(null);
 
   const load = async () => {
     const range = period === 'custom' ? `period=custom&from=${from}&to=${to}` : `period=${period}`;
     try {
-      setData(await api<Data>(`/equipment/analytics?${range}&vehicleId=${vehicleId}`));
+      const [current, total] = await Promise.all([
+        api<Data>(`/equipment/analytics?${range}&vehicleId=${vehicleId}`),
+        api<Data>(`/equipment/analytics?period=all&vehicleId=${vehicleId}`),
+      ]);
+      setData(current);
+      setAllTime(total);
       setError('');
     } catch (x) {
       setError(errorText(x));
@@ -36,7 +45,7 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
   };
   useEffect(() => {
     load();
-  }, [period, vehicleId, from, to]);
+  }, [period, vehicleId, from, to, version]);
 
   const toggle = readOnly
     ? undefined
@@ -49,36 +58,66 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
           setError(errorText(x));
         }
       };
-  const max = Math.max(1, ...(data?.byVehicle.map((x) => Math.max(x.revenue, x.expenses)) || [1]));
 
   return (
     <>
-      <label className="field">
-        <span>Техника</span>
-        <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-          <option value="all">Вся техника</option>
-          {vehicles.map((x) => (
-            <option value={x.id} key={x.id}>
-              {x.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="equipment-periods" role="tablist">
-        {periods.map(({ value, label }) => (
-          <button role="tab" aria-selected={period === value} className={period === value ? 'selected' : ''} onClick={() => setPeriod(value)} key={value}>
-            {label}
-          </button>
-        ))}
-      </div>
-      {period === 'custom' && (
-        <div className="pair custom-period">
-          <Field label="С даты" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Field label="По дату" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
+      {allTime && (
+        <Stats
+          items={[
+            { icon: <ChartNoAxesColumn />, value: rub(allTime.revenue), sub: 'выручка' },
+            { icon: <Coins />, value: rub(allTime.expenses), sub: 'расходы' },
+            { icon: <Wallet />, value: rub(allTime.profit), sub: 'чистыми' },
+          ]}
+        />
       )}
-      <ErrorNote>{error}</ErrorNote>
-      {!data && !error && <p className="loading">Считаем…</p>}
+
+      <Card
+        icon={
+          <IconTile>
+            <ChartNoAxesColumn />
+          </IconTile>
+        }
+        title={periods.find((p) => p.value === period)!.title}
+      >
+        <div className="overview-controls">
+          <label className="select">
+            <select aria-label="Техника" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
+              <option value="all">Вся техника</option>
+              {vehicles.map((x) => (
+                <option value={x.id} key={x.id}>
+                  {x.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown aria-hidden />
+          </label>
+          <div className="period-pills" role="tablist">
+            {periods.map(({ value, label }) => (
+              <button
+                role="tab"
+                aria-selected={period === value}
+                aria-label={label}
+                title={label}
+                className={['chip', value === 'custom' && 'icon', period === value && 'on'].filter(Boolean).join(' ')}
+                onClick={() => setPeriod(value)}
+                key={value}
+              >
+                {/* «Свои даты» — значком календаря, чтобы периоды помещались в один ряд */}
+                {value === 'custom' ? <CalendarDays aria-hidden /> : label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {period === 'custom' && (
+          <div className="pair custom-period">
+            <Field label="С даты" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Field label="По дату" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+        )}
+        <ErrorNote>{error}</ErrorNote>
+        {!data ? !error && <p className="loading">Считаем…</p> : <Overview data={data} period={period} />}
+      </Card>
+
       {data && (
         <>
           <section className="equipment-summary">
@@ -99,35 +138,221 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
               <strong>{rub(data.unpaid)}</strong>
             </div>
           </section>
-          <h2>По технике</h2>
-          <div className="equipment-analytics-list">
-            {data.byVehicle.map((x) => (
-              <article key={x.vehicleId} onClick={() => setDetail({ kind: 'vehicle', id: x.vehicleId })}>
-                <header>
-                  <div>
-                    <strong>{x.name}</strong>
-                    <small>
-                      {x.trips} ходок · долг {rub(x.unpaid)}
-                    </small>
-                  </div>
-                  <b>{rub(x.profit)}</b>
-                </header>
-                <div className="equipment-bars">
-                  <i style={{ width: `${(x.revenue / max) * 100}%` }} />
-                  <i style={{ width: `${(x.expenses / max) * 100}%` }} />
-                </div>
-                <footer>
-                  <span>Доход {rub(x.revenue)}</span>
-                  <span>Расход {rub(x.expenses)}</span>
-                </footer>
-              </article>
-            ))}
+
+          <ByVehicle data={data} onOpen={(id) => setDetail({ kind: 'vehicle', id })} />
+
+          <div className="split">
+            <ExpenseCategories data={data} onOpen={(group) => setDetail({ kind: 'expenses', group })} />
+            <ExpenseVehicles data={data} onOpen={(id) => setDetail({ kind: 'vehicle', id })} />
           </div>
-          {!data.byVehicle.length && <Empty>За этот период записей нет.</Empty>}
+
+          <Results data={data} allTime={allTime} />
         </>
       )}
       {detail && data && <DetailSheet data={data} detail={detail} setDetail={setDetail} onToggle={toggle} />}
     </>
+  );
+}
+
+function Overview({ data, period }: { data: Data; period: string }) {
+  const points = revenueSeries(data.tripRows, period, data.from, data.to);
+  const tripsTotal = sum(data.tripRows, (t) => t.amount);
+  const margin = data.revenue > 0 ? Math.round((data.profit / data.revenue) * 100) : null;
+  return (
+    <>
+      {points.length > 1 ? (
+        <>
+          <p className="chart-caption">Выручка, ₽</p>
+          <LineChart points={points} />
+        </>
+      ) : (
+        <p className="chart-empty">{period === 'day' ? 'За один день график не строится — итоги дня ниже.' : 'Мало данных для графика.'}</p>
+      )}
+      <div className="metrics">
+        <Metric icon={<ChartNoAxesColumn />} label="Средний рейс" value={data.trips ? rub(Math.round(tripsTotal / data.trips)) : '—'} />
+        <Metric icon={<Coins />} label="Расход на рейс" value={data.trips ? rub(Math.round(data.expenses / data.trips)) : '—'} />
+        <Metric icon={<Percent />} label="Маржа" value={margin == null ? '—' : `${margin}%`} />
+      </div>
+    </>
+  );
+}
+
+function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="metric">
+      <IconTile>{icon}</IconTile>
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
+      </span>
+    </div>
+  );
+}
+
+function ByVehicle({ data, onOpen }: { data: Data; onOpen: (id: number) => void }) {
+  const max = Math.max(1, ...data.byVehicle.map((x) => Math.max(x.revenue, x.expenses)));
+  return (
+    <Card
+      icon={
+        <IconTile>
+          <Truck />
+        </IconTile>
+      }
+      title="По технике"
+    >
+      {!data.byVehicle.length && <Empty>За этот период записей нет.</Empty>}
+      <div className="tech-list">
+        {data.byVehicle.map((x) => (
+          <button type="button" className="tech-row" key={x.vehicleId} onClick={() => onOpen(x.vehicleId)}>
+            <span className="tech-head">
+              <span>
+                <strong>{x.name}</strong>
+                <small>
+                  {tripsLabel(x.trips)} • долг {rub(x.unpaid)}
+                </small>
+              </span>
+              <b className={x.profit < 0 ? 'neg' : 'pos'}>
+                {x.profit > 0 ? '+' : ''}
+                {rub(x.profit)}
+              </b>
+            </span>
+            <span className="bars">
+              <i>
+                <em className="income" style={{ width: `${(x.revenue / max) * 100}%` }} />
+              </i>
+              <i>
+                <em className="cost" style={{ width: `${(x.expenses / max) * 100}%` }} />
+              </i>
+            </span>
+            <span className="tech-foot">
+              <span>Доход {rub(x.revenue)}</span>
+              <span>Расход {rub(x.expenses)}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function ExpenseCategories({ data, onOpen }: { data: Data; onOpen: (group: string) => void }) {
+  const groups = groupBy(
+    data.expenseRows,
+    (x) => x.category.name,
+    (x) => Number(x.amount),
+  );
+  // Не больше пяти сегментов: мелкие категории уходят в «Остальное», чтобы кольцо читалось.
+  const shown = groups.length > 5 ? [...groups.slice(0, 4), { name: 'Остальное', rows: [], total: sum(groups.slice(4), (g) => g.total) }] : groups;
+  const share = (v: number) => (data.expenses ? Math.round((v / data.expenses) * 100) : 0);
+  return (
+    <Card
+      icon={
+        <IconTile>
+          <ChartPie />
+        </IconTile>
+      }
+      title="Расходы по категориям"
+    >
+      {!groups.length ? (
+        <Empty>Расходов за период нет.</Empty>
+      ) : (
+        <div className="donut-box">
+          <Donut parts={shown.map((g, i) => ({ value: g.total, color: DONUT_COLORS[i] }))} center={rub(data.expenses)} caption="всего" />
+          <ul className="legend">
+            {shown.map((g, i) => (
+              <li key={g.name}>
+                <button type="button" disabled={!g.rows.length} onClick={() => onOpen(g.name)}>
+                  <i style={{ background: DONUT_COLORS[i] }} />
+                  <span>{g.name}</span>
+                  <b>{rub(g.total)}</b>
+                  <small>{share(g.total)}%</small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ExpenseVehicles({ data, onOpen }: { data: Data; onOpen: (id: number) => void }) {
+  const groups = groupBy(
+    data.expenseRows,
+    (x) => String(x.vehicleId),
+    (x) => Number(x.amount),
+  );
+  return (
+    <Card
+      icon={
+        <IconTile>
+          <Truck />
+        </IconTile>
+      }
+      title="По машинам"
+    >
+      {!groups.length && <Empty>Расходов за период нет.</Empty>}
+      <div className="share-list">
+        {groups.map((g) => {
+          const pct = data.expenses ? Math.round((g.total / data.expenses) * 100) : 0;
+          return (
+            <button type="button" className="share-row" key={g.name} onClick={() => onOpen(Number(g.name))}>
+              <span className="share-head">
+                <span>{g.rows[0].vehicle.name}</span>
+                <b>{rub(g.total)}</b>
+              </span>
+              <span className="share-bar">
+                <i>
+                  <em style={{ width: `${pct}%` }} />
+                </i>
+                <small>{pct}%</small>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function Results({ data, allTime }: { data: Data; allTime: Data | null }) {
+  const leader = data.byVehicle.reduce<Data['byVehicle'][number] | null>((best, x) => (!best || x.profit > best.profit ? x : best), null);
+  const best = allTime ? bestMonth(allTime.tripRows) : null;
+  return (
+    <Card
+      icon={
+        <IconTile>
+          <Trophy />
+        </IconTile>
+      }
+      title="Итоги"
+    >
+      <div className="results">
+        <div className="result">
+          <IconTile>
+            <ChartNoAxesColumn />
+          </IconTile>
+          <span>
+            <small>Самая прибыльная</small>
+            <strong>{leader ? leader.name : '—'}</strong>
+          </span>
+        </div>
+        <div className="result">
+          <IconTile>
+            <CalendarDays />
+          </IconTile>
+          <span>
+            <small>Лучший месяц</small>
+            <strong>{best ? `${monthTitle(best.key)}${best.key.slice(0, 4) === todayKey().slice(0, 4) ? '' : ` ${best.key.slice(0, 4)}`}` : '—'}</strong>
+            {best && (
+              <em>
+                {tripsLabel(best.trips)} • {best.paid} оплачено • {best.unpaid} в ожидании
+              </em>
+            )}
+          </span>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -149,7 +374,7 @@ function DetailSheet({
     const trips = data.tripRows.filter((t) => t.vehicleId === detail.id);
     const expenses = data.expenseRows.filter((x) => x.vehicleId === detail.id);
     return (
-      <Sheet title={vehicle?.name ?? 'Машина'} onClose={close}>
+      <Sheet title={vehicle?.name ?? trips[0]?.vehicle.name ?? expenses[0]?.vehicle.name ?? 'Машина'} onClose={close}>
         <h4 className="sheet-section">
           Ходки <span>{rub(sum(trips, (t) => t.amount))}</span>
         </h4>
@@ -157,7 +382,13 @@ function DetailSheet({
         <h4 className="sheet-section">
           Расходы <span>{rub(sum(expenses, (x) => x.amount))}</span>
         </h4>
-        {expenses.length ? <ExpenseDays expenses={expenses} title={(x) => x.category.name} /> : <Empty>Расходов нет.</Empty>}
+        {expenses.length ? (
+          <div className="ledger">
+            <ExpenseDays expenses={expenses} />
+          </div>
+        ) : (
+          <Empty>Расходов нет.</Empty>
+        )}
       </Sheet>
     );
   }
@@ -219,7 +450,9 @@ function DetailSheet({
         <p className="sheet-summary">
           {recordsLabel(group.rows.length)} на {rub(group.total)}
         </p>
-        <ExpenseDays expenses={group.rows} title={(x) => x.vehicle.name} />
+        <div className="ledger">
+          <ExpenseDays expenses={group.rows} title={(x) => x.vehicle.name} />
+        </div>
       </Sheet>
     );
   return (

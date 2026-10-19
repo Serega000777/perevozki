@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
-import { Check, ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleCheck, Clock, Droplets, Ellipsis, Fuel, Hammer, Disc, Plus, Receipt, User, Wrench, X } from 'lucide-react';
 import { dayTitle, rub, shiftDay, shortDate, todayKey } from '../lib/format';
 
 export const haptic = () => window.Telegram?.WebApp.HapticFeedback?.notificationOccurred('success');
 export const errorText = (error: unknown) => (error instanceof Error ? error.message : 'Не удалось выполнить операцию');
 
-export function Field({ label, ...props }: { label: string } & InputHTMLAttributes<HTMLInputElement>) {
+export function Field({ label, icon, ...props }: { label: string; icon?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="field">
+    <label className={icon ? 'field with-icon' : 'field'}>
       <span>{label}</span>
-      <input {...props} />
+      <span className="field-box">
+        {icon && <span className="field-icon">{icon}</span>}
+        <input {...props} />
+      </span>
     </label>
   );
 }
@@ -20,14 +23,16 @@ export function Choice<T extends string | number>({
   options,
   value,
   onChange,
+  shape = 'rect',
 }: {
   label?: string;
   options: { value: T; label: string }[];
   value: T | null;
   onChange: (value: T) => void;
+  shape?: 'rect' | 'pill';
 }) {
   const chips = (
-    <div className="chips" role="radiogroup" aria-label={label}>
+    <div className={`chips ${shape === 'pill' ? 'round' : 'rect'}`} role="radiogroup" aria-label={label}>
       {options.map((option) => (
         <button
           type="button"
@@ -48,6 +53,86 @@ export function Choice<T extends string | number>({
       <span>{label}</span>
       {chips}
     </div>
+  );
+}
+
+export function IconTile({ children, plus = false }: { children: ReactNode; plus?: boolean }) {
+  return (
+    <span className="icon-tile">
+      {children}
+      {plus && <Plus className="icon-plus" aria-hidden />}
+    </span>
+  );
+}
+
+export function Card({
+  icon,
+  title,
+  aside,
+  children,
+  className = '',
+}: {
+  icon?: ReactNode;
+  title?: ReactNode;
+  aside?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`card ${className}`}>
+      {title && (
+        <div className="card-head">
+          {icon}
+          <h2>{title}</h2>
+          {aside && <div className="card-aside">{aside}</div>}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+export type Stat = { icon: ReactNode; value: ReactNode; unit?: string; sub: string };
+
+export function Stats({ items }: { items: Stat[] }) {
+  return (
+    <section className="stats">
+      {items.map((s, i) => (
+        <div className="stat" key={i}>
+          <IconTile>{s.icon}</IconTile>
+          <div className="stat-text">
+            <strong>
+              {s.value}
+              {s.unit && <span> {s.unit}</span>}
+            </strong>
+            <small>{s.sub}</small>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+export function SectionHead({ title, aside }: { title: string; aside?: ReactNode }) {
+  return (
+    <div className="section-head">
+      <h2>{title}</h2>
+      {aside && <span>{aside}</span>}
+    </div>
+  );
+}
+
+// «+» — только у кнопок добавления; «Сохранить» в правке без значка.
+export function PrimaryButton({ children, disabled, plus = true }: { children: ReactNode; disabled?: boolean; plus?: boolean }) {
+  return (
+    <button className="primary" disabled={disabled}>
+      {plus && (
+        <span className="plus" aria-hidden>
+          <Plus />
+        </span>
+      )}
+      {children}
+    </button>
   );
 }
 
@@ -100,7 +185,7 @@ export function DeleteButton({ label, onConfirm, small = false }: { label: strin
   );
 }
 
-// День — разделительная строка внутри общей подложки, как в банковской выписке.
+// День — серая полоса внутри общей подложки, как в банковской выписке.
 export function DayGroup({ day, total, children }: { day: string; total?: number; children: ReactNode }) {
   return (
     <>
@@ -118,24 +203,27 @@ export function Row({
   meta,
   amount,
   side,
-  check,
+  icon,
   onOpen,
 }: {
   title: ReactNode;
   meta?: ReactNode;
   amount?: number | string;
   side?: ReactNode;
-  check?: ReactNode;
+  icon?: ReactNode;
   onOpen?: () => void;
 }) {
   const main = (
     <>
-      <span className="row-title">{title}</span>
-      {meta && <span className="row-meta">{meta}</span>}
+      {icon && <span className="row-icon">{icon}</span>}
+      <span className="row-text">
+        <span className="row-title">{title}</span>
+        {meta && <span className="row-meta">{meta}</span>}
+      </span>
     </>
   );
   return (
-    <div className={check ? 'row has-check' : 'row'}>
+    <div className={onOpen ? 'row clickable' : 'row'}>
       {onOpen ? (
         <button type="button" className="row-main" onClick={onOpen}>
           {main}
@@ -147,30 +235,60 @@ export function Row({
         {amount != null && <span className="money">{rub(amount)}</span>}
         {side}
       </div>
-      {check}
+      {onOpen && <ChevronRight className="chevron" aria-hidden onClick={onOpen} />}
     </div>
   );
 }
 
-export const PaidStatus = ({ paid }: { paid: boolean }) => <span className={paid ? 'status paid' : 'status unpaid'}>{paid ? 'Оплачено' : 'Не отдали'}</span>;
-
-// Крупная галочка справа: на телефоне по ней попасть проще, чем по тексту статуса.
-export function PaidCheck({ paid, onToggle }: { paid: boolean; onToggle: () => void }) {
+// Статус оплаты ходки: плашка с галочкой или часами; у владельца нажатие переключает.
+export function PaidPill({ paid, onToggle }: { paid: boolean; onToggle?: () => void }) {
+  const content = (
+    <>
+      {paid ? <CircleCheck aria-hidden /> : <Clock aria-hidden />}
+      {paid ? 'Оплачено' : 'Ожидает'}
+    </>
+  );
+  const className = paid ? 'pill paid' : 'pill waiting';
+  if (!onToggle) return <span className={className}>{content}</span>;
   return (
     <button
       type="button"
-      role="checkbox"
-      aria-checked={paid}
-      aria-label={paid ? 'Оплачено. Снять отметку' : 'Отметить оплату'}
-      className={paid ? 'check on' : 'check'}
-      onClick={onToggle}
+      className={className}
+      aria-pressed={paid}
+      aria-label={paid ? 'Оплачено. Нажмите, чтобы снять отметку' : 'Ожидает оплаты. Нажмите, чтобы отметить оплату'}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
     >
-      <Check aria-hidden />
+      {content}
     </button>
   );
 }
 
-// Быстрый выбор даты; дата последней добавленной записи подсвечена — к ней часто возвращаются.
+// Иконка категории расхода по названию; свои категории без узнаваемого имени — «чек».
+export function CategoryIcon({ name }: { name: string }) {
+  const n = name.toLowerCase();
+  const Icon =
+    n.includes('топлив') || n.includes('бенз') || n.includes('дт')
+      ? Fuel
+      : n.includes('запчаст')
+        ? Wrench
+        : n.includes('ремонт')
+          ? Hammer
+          : n.includes('зарплат') || n.includes('водител')
+            ? User
+            : n.includes('шин') || n.includes('колес')
+              ? Disc
+              : n.includes('мойк')
+                ? Droplets
+                : n.includes('проч')
+                  ? Ellipsis
+                  : Receipt;
+  return <Icon aria-hidden />;
+}
+
+// Быстрый выбор даты; день последней добавленной записи подсвечен — к нему часто возвращаются.
 export function DateChips({ value, onChange, last }: { value: string; onChange: (value: string) => void; last?: string | null }) {
   const today = todayKey();
   const options = [
@@ -180,21 +298,19 @@ export function DateChips({ value, onChange, last }: { value: string; onChange: 
   ];
   if (last && !options.some((o) => o.value === last)) options.push({ value: last, label: shortDate(last) });
   return (
-    <div className="date-quick">
-      <div className="chips date-chips" role="group" aria-label="Быстрый выбор даты">
-        {options.map((o) => (
-          <button
-            type="button"
-            key={o.value}
-            className={['chip', o.value === value && 'on', o.value === last && 'last'].filter(Boolean).join(' ')}
-            aria-pressed={o.value === value}
-            onClick={() => onChange(o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-      {last && <span className="date-hint">Подсвечен день последней добавленной записи</span>}
+    <div className="chips date-chips" role="group" aria-label="Быстрый выбор даты">
+      {options.map((o) => (
+        <button
+          type="button"
+          key={o.value}
+          className={['chip', o.value === value && 'on', o.value === last && 'last'].filter(Boolean).join(' ')}
+          aria-pressed={o.value === value}
+          title={o.value === last ? 'День последней добавленной записи' : undefined}
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
