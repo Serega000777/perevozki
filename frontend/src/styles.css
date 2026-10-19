@@ -572,6 +572,32 @@ button.status {
   color: var(--ink-2);
 }
 
+.notice {
+  padding: 20px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.notice h2 {
+  margin: 0 0 8px;
+}
+.notice p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.notice .primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  text-decoration: none;
+}
+.notice .hint {
+  margin: 12px 0 0;
+}
+
 /* --- шторка (единственный элемент с тенью) --- */
 .sheet-backdrop {
   position: fixed;
