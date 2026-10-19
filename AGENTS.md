@@ -139,7 +139,7 @@ PostgreSQL 16 (своя БД, миграции Prisma в backend/prisma/migratio
 
 ```text
 backend/    Express API, Prisma-схема и миграции, тесты (node:test)
-frontend/   Telegram Mini App (React 19 + Vite), nginx.conf для прод-образа
+frontend/   Telegram Mini App (React 19 + Vite): src/equipment/* — вкладки и UI-кирпичики, src/lib/format.ts — группировка/форматы (+тесты), nginx.conf
 bot/        Telegram-бот: /start и кнопка меню, открывающие Mini App
 scripts/    служебные скрипты (подпись тестового initData, импорт данных из Cement CRM)
 infra/      заготовки для VPS (reverse proxy) — деплой ещё не выполнялся
@@ -195,3 +195,6 @@ docker compose up -d --build     # весь стек (db, backend, frontend, bot
 - Код короткий и чистый, стиль — как у соседних файлов. Комментарии — только про «почему».
 - Лишних зависимостей и инфраструктуры «про запас» не добавлять.
 - Каждое архитектурное решение с альтернативами — ADR в `docs/decisions/`.
+- Интерфейс — только по [`docs/design.md`](docs/design.md): списки-«выписка» из `ui.tsx`, без новых
+  одинаковых карточек, полупрозрачных фонов с цветной обводкой, «пилюль» и иконок в квадратиках.
+  Блок итогов «Аналитики» и карточки «По технике» не менять без владельца.

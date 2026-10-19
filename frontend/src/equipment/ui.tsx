@@ -100,15 +100,16 @@ export function DeleteButton({ label, onConfirm, small = false }: { label: strin
   );
 }
 
+// День — разделительная строка внутри общей подложки, как в банковской выписке.
 export function DayGroup({ day, total, children }: { day: string; total?: number; children: ReactNode }) {
   return (
-    <section className="day">
-      <h4 className="day-head">
+    <>
+      <div className="ledger-day" role="heading" aria-level={4}>
         <span>{dayTitle(day)}</span>
         {total != null && <span className="money">{rub(total)}</span>}
-      </h4>
-      <div className="ledger">{children}</div>
-    </section>
+      </div>
+      {children}
+    </>
   );
 }
 

@@ -12,15 +12,15 @@ export const recordsLabel = (n: number) => `${n} ${plural(n, ['запись', '�
 // Расходы по дням; заголовок строки — категория или машина, в зависимости от того, что уже известно из контекста.
 export function ExpenseDays({ expenses, title, onOpen }: { expenses: Expense[]; title: (x: Expense) => string; onOpen?: (x: Expense) => void }) {
   return (
-    <>
+    <div className="ledger">
       {groupByDay(expenses).map(({ day, rows }) => (
-        <DayGroup day={day} total={sum(rows, (x) => x.amount)} key={day}>
+        <DayGroup day={day} total={rows.length > 1 ? sum(rows, (x) => x.amount) : undefined} key={day}>
           {rows.map((x) => (
             <Row key={x.id} title={title(x)} meta={x.comment} amount={x.amount} onOpen={onOpen && (() => onOpen(x))} />
           ))}
         </DayGroup>
       ))}
-    </>
+    </div>
   );
 }
 

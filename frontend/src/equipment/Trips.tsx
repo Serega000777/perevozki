@@ -23,9 +23,9 @@ export function TripDays({
   onToggle?: (t: Trip) => void;
 }) {
   return (
-    <>
+    <div className="ledger">
       {groupByDay(trips).map(({ day, rows }) => (
-        <DayGroup day={day} total={sum(rows, (t) => t.amount)} key={day}>
+        <DayGroup day={day} total={rows.length > 1 ? sum(rows, (t) => t.amount) : undefined} key={day}>
           {rows.map((t) => (
             <Row
               key={t.id}
@@ -38,7 +38,7 @@ export function TripDays({
           ))}
         </DayGroup>
       ))}
-    </>
+    </div>
   );
 }
 
