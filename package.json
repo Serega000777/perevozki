@@ -11,7 +11,7 @@
     "dev:bot": "npm run dev -w bot",
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
-    "test": "npm test -w backend",
+    "test": "npm test -w backend && npm test -w frontend",
     "test:e2e": "npm run test:e2e -w backend",
     "db:generate": "npm run db:generate -w backend",
     "db:migrate": "npm run db:migrate -w backend",

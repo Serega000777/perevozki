@@ -1,87 +1,59 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { api } from './api';
+import { Analytics } from './equipment/Analytics';
+import { Expenses } from './equipment/Expenses';
+import { Trips } from './equipment/Trips';
+import type { Category, Expense, Trip, Vehicle } from './equipment/types';
+import { ErrorNote, errorText } from './equipment/ui';
+import { Vehicles } from './equipment/Vehicles';
 
-const today = new Date().toISOString().slice(0, 10),
-  rub = (v = 0) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v);
-type Vehicle = { id: number; name: string; note?: string };
-type Trip = {
-  id: number;
-  vehicleId: number;
-  vehicle: Vehicle;
-  date: string;
-  destination: string;
-  amount: number;
-  mileage?: number;
-  comment?: string;
-  paid: boolean;
-};
-type Category = { id: number; name: string };
-type Expense = { id: number; vehicleId: number; vehicle: Vehicle; categoryId: number; category: Category; date: string; amount: number; comment?: string };
-type Analytics = {
-  revenue: number;
-  expenses: number;
-  profit: number;
-  unpaid: number;
-  trips: number;
-  byVehicle: { vehicleId: number; name: string; revenue: number; expenses: number; profit: number; unpaid: number; trips: number }[];
-  tripRows: Trip[];
-  expenseRows: Expense[];
-};
-const successFeedback = () => window.Telegram?.WebApp.HapticFeedback?.notificationOccurred('success');
-const Field = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
-  <label>
-    <span>{label}</span>
-    <input {...props} />
-  </label>
-);
-const Select = ({ label, children, ...props }: { label: string; children: React.ReactNode } & React.SelectHTMLAttributes<HTMLSelectElement>) => (
-  <label>
-    <span>{label}</span>
-    <select {...props}>{children}</select>
-  </label>
-);
+type Tab = 'trips' | 'expenses' | 'analytics' | 'vehicles';
+const tabs: [Tab, string][] = [
+  ['trips', 'Ходки'],
+  ['expenses', 'Расходы'],
+  ['analytics', 'Аналитика'],
+  ['vehicles', 'Авто'],
+];
 
 // readOnly — зритель: видит только статистику; права всё равно проверяет сервер.
 export function Equipment({ readOnly }: { readOnly: boolean }) {
-  const [tab, setTab] = useState<'vehicles' | 'trips' | 'expenses' | 'analytics'>('vehicles'),
-    [vehicles, setVehicles] = useState<Vehicle[]>([]),
-    [trips, setTrips] = useState<Trip[]>([]),
-    [expenses, setExpenses] = useState<Expense[]>([]),
-    [categories, setCategories] = useState<Category[]>([]),
-    [error, setError] = useState('');
-  const load = () => {
-    const requests = [api<Vehicle[]>('/equipment/vehicles').then(setVehicles)];
-    if (!readOnly)
-      requests.push(
-        api<Trip[]>('/equipment/trips').then(setTrips),
-        api<Expense[]>('/equipment/expenses').then(setExpenses),
-        api<Category[]>('/equipment/categories').then(setCategories),
-      );
-    return Promise.all(requests).catch((e) => setError(e.message));
+  const [tab, setTab] = useState<Tab>('trips');
+  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    try {
+      const [v, t, e, c] = await Promise.all([
+        api<Vehicle[]>('/equipment/vehicles'),
+        readOnly ? [] : api<Trip[]>('/equipment/trips'),
+        readOnly ? [] : api<Expense[]>('/equipment/expenses'),
+        readOnly ? [] : api<Category[]>('/equipment/categories'),
+      ]);
+      setVehicles(v);
+      setTrips(t);
+      setExpenses(e);
+      setCategories(c);
+      setError('');
+    } catch (x) {
+      setError(errorText(x));
+    }
   };
   useEffect(() => {
     load();
   }, []);
-  if (readOnly)
-    return (
-      <>
-        {error && <div className="alert">{error}</div>}
-        <EquipmentAnalytics vehicles={vehicles} readOnly />
-      </>
-    );
+
+  if (!vehicles) return error ? <ErrorNote>{error}</ErrorNote> : <p className="loading">Загружаем…</p>;
+  if (readOnly) return <Analytics vehicles={vehicles} readOnly />;
   return (
     <>
-      <div className="equipment-tabs">
-        {(
-          [
-            ['vehicles', 'Авто'],
-            ['trips', 'Ходки'],
-            ['expenses', 'Расходы'],
-            ['analytics', 'Аналитика'],
-          ] as const
-        ).map(([key, label]) => (
+      <nav className="equipment-tabs" role="tablist">
+        {tabs.map(([key, label]) => (
           <button
+            role="tab"
+            aria-selected={tab === key}
             className={tab === key ? 'selected' : ''}
             onClick={() => {
               setTab(key);
@@ -92,481 +64,12 @@ export function Equipment({ readOnly }: { readOnly: boolean }) {
             {label}
           </button>
         ))}
-      </div>
-      {error && <div className="alert">{error}</div>}
-      {tab === 'vehicles' ? (
-        <Vehicles vehicles={vehicles} reload={load} fail={setError} />
-      ) : tab === 'trips' ? (
-        <Trips vehicles={vehicles} rows={trips} reload={load} fail={setError} />
-      ) : tab === 'expenses' ? (
-        <Expenses vehicles={vehicles} rows={expenses} categories={categories} reload={load} fail={setError} />
-      ) : (
-        <EquipmentAnalytics vehicles={vehicles} />
-      )}
-    </>
-  );
-}
-
-function Vehicles({ vehicles, reload, fail }: { vehicles: Vehicle[]; reload: () => unknown; fail: (x: string) => void }) {
-  const save = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    try {
-      await api('/equipment/vehicles', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) });
-      form.reset();
-      fail('');
-      successFeedback();
-      await reload();
-    } catch (x) {
-      fail((x as Error).message);
-    }
-  };
-  const edit = async (x: Vehicle) => {
-    const name = prompt('Название техники', x.name);
-    if (!name) return;
-    const note = prompt('Описание или госномер', x.note || '') ?? x.note;
-    await api(`/equipment/vehicles/${x.id}`, { method: 'PATCH', body: JSON.stringify({ name, note }) });
-    reload();
-  };
-  const remove = async (x: Vehicle) => {
-    if (!confirm(`Удалить «${x.name}»?`)) return;
-    try {
-      await api(`/equipment/vehicles/${x.id}`, { method: 'DELETE' });
-      reload();
-    } catch (e) {
-      fail((e as Error).message);
-    }
-  };
-  return (
-    <>
-      <form onSubmit={save}>
-        <Field label="Название авто или техники" name="name" placeholder="Например, JCB 3CX" required />
-        <Field label="Госномер или описание (необязательно)" name="note" />
-        <button className="submit">
-          <Plus />
-          Добавить технику
-        </button>
-      </form>
-      <h2>Моя техника</h2>
-      <div className="list">
-        {vehicles.map((x) => (
-          <div className="history compact" key={x.id}>
-            <div>
-              <strong>{x.name}</strong>
-              <small>{x.note || 'Без описания'}</small>
-            </div>
-            <button className="icon-button" onClick={() => edit(x)}>
-              <Pencil />
-            </button>
-            <button className="icon-button danger" onClick={() => remove(x)}>
-              <Trash2 />
-            </button>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function Trips({ vehicles, rows, reload, fail }: { vehicles: Vehicle[]; rows: Trip[]; reload: () => unknown; fail: (x: string) => void }) {
-  const save = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    try {
-      await api('/equipment/trips', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) });
-      form.reset();
-      fail('');
-      successFeedback();
-      await reload();
-    } catch (x) {
-      fail((x as Error).message);
-    }
-  };
-  const toggle = async (x: Trip) => {
-    await api(`/equipment/trips/${x.id}/paid`, { method: 'PATCH', body: JSON.stringify({ paid: !x.paid }) });
-    reload();
-  };
-  const edit = async (x: Trip) => {
-    const destination = prompt('Куда ездил', x.destination);
-    if (!destination) return;
-    const amount = prompt('Цена, ₽', String(x.amount));
-    if (amount === null) return;
-    const mileage = prompt('Пробег (необязательно)', x.mileage == null ? '' : String(x.mileage));
-    if (mileage === null) return;
-    const comment = prompt('Комментарий (необязательно)', x.comment || '');
-    if (comment === null) return;
-    await api(`/equipment/trips/${x.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ vehicleId: x.vehicleId, date: x.date.slice(0, 10), destination, amount, mileage, comment, paid: x.paid }),
-    });
-    reload();
-  };
-  const remove = async (x: Trip) => {
-    if (!confirm('Удалить ходку?')) return;
-    await api(`/equipment/trips/${x.id}`, { method: 'DELETE' });
-    reload();
-  };
-  return (
-    <>
-      {!vehicles.length ? (
-        <div className="alert">Сначала добавьте технику.</div>
-      ) : (
-        <form onSubmit={save}>
-          <Select label="Авто" name="vehicleId" required>
-            <option value="">Выберите технику</option>
-            {vehicles.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </Select>
-          <Field label="Дата" name="date" type="date" defaultValue={today} required />
-          <Field label="Куда ездил" name="destination" required />
-          <Field label="Цена" name="amount" type="number" min="0" step="0.01" required />
-          <Field label="Пробег (необязательно)" name="mileage" type="number" min="0" step="0.1" />
-          <Field label="Комментарий (необязательно)" name="comment" />
-          <label className="finance-check">
-            <input type="checkbox" name="paid" />
-            <span>Деньги отданы</span>
-          </label>
-          <button className="submit">Добавить ходку</button>
-        </form>
-      )}
-      <h2>История ходок</h2>
-      <div className="list">
-        {rows.map((x) => (
-          <div className="history equipment-row" key={x.id}>
-            <div>
-              <strong>
-                {x.vehicle.name} · {x.destination}
-              </strong>
-              <small>
-                {new Date(x.date).toLocaleDateString('ru-RU')}
-                {x.mileage != null ? ` · ${Number(x.mileage).toFixed(1)} км` : ''}
-                {x.comment ? ` · ${x.comment}` : ''}
-              </small>
-            </div>
-            <b>{rub(Number(x.amount))}</b>
-            <label className="paid-toggle">
-              <input type="checkbox" checked={x.paid} onChange={() => toggle(x)} />
-              <span>{x.paid ? 'Оплачено' : 'Не отдали'}</span>
-            </label>
-            <button className="icon-button" onClick={() => edit(x)}>
-              <Pencil />
-            </button>
-            <button className="icon-button danger" onClick={() => remove(x)}>
-              <Trash2 />
-            </button>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function Expenses({
-  vehicles,
-  rows,
-  categories,
-  reload,
-  fail,
-}: {
-  vehicles: Vehicle[];
-  rows: Expense[];
-  categories: Category[];
-  reload: () => unknown;
-  fail: (x: string) => void;
-}) {
-  const [starts, setStarts] = useState<Record<number, number>>({});
-  const save = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    try {
-      await api('/equipment/expenses', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) });
-      form.reset();
-      fail('');
-      successFeedback();
-      await reload();
-    } catch (x) {
-      fail((x as Error).message);
-    }
-  };
-  const addCategory = async () => {
-    const name = prompt('Название новой категории');
-    if (!name?.trim()) return;
-    try {
-      await api('/equipment/categories', { method: 'POST', body: JSON.stringify({ name: name.trim() }) });
-      reload();
-    } catch (x) {
-      fail((x as Error).message);
-    }
-  };
-  const removeCategory = async (x: Category) => {
-    if (!confirm(`Удалить категорию «${x.name}»?`)) return;
-    try {
-      await api(`/equipment/categories/${x.id}`, { method: 'DELETE' });
-      reload();
-    } catch (e) {
-      fail((e as Error).message);
-    }
-  };
-  const edit = async (x: Expense) => {
-    const amount = prompt('Сумма расхода, ₽', String(x.amount));
-    if (amount === null) return;
-    const comment = prompt('Комментарий', x.comment || '');
-    if (comment === null) return;
-    await api(`/equipment/expenses/${x.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ vehicleId: x.vehicleId, categoryId: x.categoryId, date: x.date.slice(0, 10), amount, comment }),
-    });
-    reload();
-  };
-  const remove = async (x: Expense) => {
-    if (!confirm('Удалить расход?')) return;
-    await api(`/equipment/expenses/${x.id}`, { method: 'DELETE' });
-    reload();
-  };
-  return (
-    <>
-      {!vehicles.length || !categories.length ? (
-        <div className="alert">Добавьте технику и хотя бы одну категорию.</div>
-      ) : (
-        <form onSubmit={save}>
-          <Select label="Авто" name="vehicleId" required>
-            <option value="">Выберите технику</option>
-            {vehicles.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </Select>
-          <Field label="Дата" name="date" type="date" defaultValue={today} required />
-          <Select label="Категория" name="categoryId" required>
-            {categories.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </Select>
-          <Field label="Сумма" name="amount" type="number" min="0.01" step="0.01" required />
-          <Field label="Комментарий (необязательно)" name="comment" />
-          <button className="submit">Добавить расход</button>
-        </form>
-      )}
-      <h2>Категории расходов</h2>
-      <button className="wide-add" onClick={addCategory}>
-        <Plus />
-        Новая категория
-      </button>
-      <div className="custom-categories">
-        {categories.map((x) => (
-          <div
-            className="swipe-category"
-            key={x.id}
-            onTouchStart={(e) => setStarts((s) => ({ ...s, [x.id]: e.touches[0].clientX }))}
-            onTouchEnd={(e) => {
-              if ((starts[x.id] || 0) - e.changedTouches[0].clientX > 55) removeCategory(x);
-            }}
-          >
-            <span>{x.name}</span>
-            <small>Свайпните влево, чтобы удалить</small>
-            <button onClick={() => removeCategory(x)}>
-              <Trash2 />
-            </button>
-          </div>
-        ))}
-      </div>
-      <h2>История расходов</h2>
-      <div className="list">
-        {rows.map((x) => (
-          <div className="history compact" key={x.id}>
-            <div>
-              <strong>
-                {x.vehicle.name} · {x.category.name}
-              </strong>
-              <small>
-                {new Date(x.date).toLocaleDateString('ru-RU')}
-                {x.comment ? ` · ${x.comment}` : ''}
-              </small>
-            </div>
-            <b>{rub(Number(x.amount))}</b>
-            <button className="icon-button" onClick={() => edit(x)}>
-              <Pencil />
-            </button>
-            <button className="icon-button danger" onClick={() => remove(x)}>
-              <Trash2 />
-            </button>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function EquipmentAnalytics({ vehicles, readOnly = false }: { vehicles: Vehicle[]; readOnly?: boolean }) {
-  const [period, setPeriod] = useState('month'),
-    [vehicleId, setVehicleId] = useState('all'),
-    [from, setFrom] = useState(today),
-    [to, setTo] = useState(today),
-    [data, setData] = useState<Analytics | null>(null),
-    [error, setError] = useState(''),
-    [detail, setDetail] = useState<'revenue' | 'expenses' | number | null>(null);
-  const load = () => {
-    const range = period === 'custom' ? `period=custom&from=${from}&to=${to}` : `period=${period}`;
-    api<Analytics>(`/equipment/analytics?${range}&vehicleId=${vehicleId}`)
-      .then(setData)
-      .catch((e) => setError(e.message));
-  };
-  useEffect(() => {
-    load();
-  }, [period, vehicleId, from, to]);
-  const max = Math.max(1, ...(data?.byVehicle.map((x) => Math.max(x.revenue, x.expenses)) || [1]));
-  const toggle = async (x: Trip) => {
-    await api(`/equipment/trips/${x.id}/paid`, { method: 'PATCH', body: JSON.stringify({ paid: !x.paid }) });
-    successFeedback();
-    load();
-  };
-  const detailVehicle = typeof detail === 'number' ? data?.byVehicle.find((x) => x.vehicleId === detail) : null;
-  const shownTrips = data?.tripRows.filter((x) => detail === 'revenue' || typeof detail !== 'number' || x.vehicleId === detail) ?? [];
-  const shownExpenses = data?.expenseRows.filter((x) => detail === 'expenses' || typeof detail !== 'number' || x.vehicleId === detail) ?? [];
-  return (
-    <>
-      <Select label="Техника" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-        <option value="all">Вся техника</option>
-        {vehicles.map((x) => (
-          <option value={x.id} key={x.id}>
-            {x.name}
-          </option>
-        ))}
-      </Select>
-      <div className="equipment-periods">
-        {[
-          ['day', 'День'],
-          ['week', 'Неделя'],
-          ['month', 'Месяц'],
-          ['custom', 'Свой период'],
-        ].map(([key, label]) => (
-          <button className={period === key ? 'selected' : ''} onClick={() => setPeriod(key)} key={key}>
-            {label}
-          </button>
-        ))}
-      </div>
-      {period === 'custom' && (
-        <div className="custom-period">
-          <Field label="С даты" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Field label="По дату" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-      )}
-      {error && <div className="alert">{error}</div>}
-      {data && (
-        <>
-          <section className="equipment-summary">
-            <button onClick={() => setDetail('revenue')}>
-              <span>Выручка</span>
-              <strong>{rub(data.revenue)}</strong>
-            </button>
-            <button onClick={() => setDetail('expenses')}>
-              <span>Расходы</span>
-              <strong>{rub(data.expenses)}</strong>
-            </button>
-            <div>
-              <span>Чистая прибыль</span>
-              <strong className={data.profit < 0 ? 'negative' : ''}>{rub(data.profit)}</strong>
-            </div>
-            <div className="unpaid">
-              <span>Не отдали</span>
-              <strong>{rub(data.unpaid)}</strong>
-            </div>
-          </section>
-          <h2>По технике</h2>
-          <div className="equipment-analytics-list">
-            {data.byVehicle.map((x) => (
-              <article key={x.vehicleId} onClick={() => setDetail(x.vehicleId)}>
-                <header>
-                  <div>
-                    <strong>{x.name}</strong>
-                    <small>
-                      {x.trips} ходок · долг {rub(x.unpaid)}
-                    </small>
-                  </div>
-                  <b>{rub(x.profit)}</b>
-                </header>
-                <div className="equipment-bars">
-                  <i style={{ width: `${(x.revenue / max) * 100}%` }} />
-                  <i style={{ width: `${(x.expenses / max) * 100}%` }} />
-                </div>
-                <footer>
-                  <span>Доход {rub(x.revenue)}</span>
-                  <span>Расход {rub(x.expenses)}</span>
-                </footer>
-              </article>
-            ))}
-          </div>
-        </>
-      )}
-      {detail !== null && data && (
-        <div className="detail-backdrop" onClick={() => setDetail(null)}>
-          <section className="detail-modal equipment-detail" onClick={(e) => e.stopPropagation()}>
-            <header>
-              <h2>{detail === 'revenue' ? 'Поступления по ходкам' : detail === 'expenses' ? 'Расходы техники' : detailVehicle?.name}</h2>
-              <button className="close" onClick={() => setDetail(null)}>
-                ×
-              </button>
-            </header>
-            {detail !== 'expenses' && (
-              <>
-                <h2>Доходы</h2>
-                <div className="list">
-                  {shownTrips.map((x) => (
-                    <div className="history compact" key={x.id}>
-                      <div>
-                        <strong>
-                          {new Date(x.date).toLocaleDateString('ru-RU')} · {x.destination}
-                        </strong>
-                        <small>{x.vehicle.name}</small>
-                      </div>
-                      <b>{rub(Number(x.amount))}</b>
-                      {readOnly ? (
-                        <span className="paid-toggle">
-                          <span>{x.paid ? 'Отданы' : 'Не отданы'}</span>
-                        </span>
-                      ) : (
-                        <label className="paid-toggle">
-                          <input type="checkbox" checked={x.paid} onChange={() => toggle(x)} />
-                          <span>{x.paid ? 'Отданы' : 'Не отданы'}</span>
-                        </label>
-                      )}
-                    </div>
-                  ))}
-                  {!shownTrips.length && <div className="empty">Ходок нет</div>}
-                </div>
-              </>
-            )}
-            {detail !== 'revenue' && (
-              <>
-                <h2>Расходы</h2>
-                <div className="list">
-                  {shownExpenses.map((x) => (
-                    <div className="history compact" key={x.id}>
-                      <div>
-                        <strong>
-                          {new Date(x.date).toLocaleDateString('ru-RU')} · {x.vehicle.name}
-                        </strong>
-                        <small>
-                          {x.category.name}
-                          {x.comment ? ` · ${x.comment}` : ''}
-                        </small>
-                      </div>
-                      <b>{rub(Number(x.amount))}</b>
-                    </div>
-                  ))}
-                  {!shownExpenses.length && <div className="empty">Расходов нет</div>}
-                </div>
-              </>
-            )}
-          </section>
-        </div>
-      )}
+      </nav>
+      <ErrorNote>{error}</ErrorNote>
+      {tab === 'trips' && <Trips vehicles={vehicles} trips={trips} reload={load} />}
+      {tab === 'expenses' && <Expenses vehicles={vehicles} expenses={expenses} categories={categories} reload={load} />}
+      {tab === 'analytics' && <Analytics vehicles={vehicles} />}
+      {tab === 'vehicles' && <Vehicles vehicles={vehicles} trips={trips} expenses={expenses} reload={load} />}
     </>
   );
 }
