@@ -9,6 +9,8 @@ RUN --mount=type=cache,target=/root/.npm npm ci -w frontend
 COPY frontend frontend
 ARG API_URL=/api
 ENV API_URL=$API_URL
+ARG BOT_URL=
+ENV BOT_URL=$BOT_URL
 RUN npm run build -w frontend
 
 FROM nginx:alpine
