@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ПЕРЕВОЗЧИК — экраны редизайна</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e9e8df;
+        color: #24251f;
+        font:
+          14px system-ui,
+          sans-serif;
+      }
+      aside {
+        position: fixed;
+        width: 280px;
+        inset: 0 auto 0 0;
+        padding: 26px;
+        overflow: auto;
+        background: #f5f5c7;
+        border-right: 1px solid #c9cbb7;
+      }
+      aside h1 {
+        font-size: 19px;
+        letter-spacing: 0.04em;
+      }
+      aside p {
+        font-size: 12px;
+        line-height: 1.6;
+        color: #62634e;
+      }
+      nav {
+        display: grid;
+        gap: 3px;
+        margin-top: 24px;
+      }
+      nav a {
+        padding: 9px 10px;
+        color: inherit;
+        text-decoration: none;
+        font-size: 13px;
+        border-radius: 3px;
+      }
+      nav a[aria-current] {
+        background: #24251f;
+        color: #e6ef78;
+      }
+      main {
+        margin-left: 280px;
+        padding: 28px;
+        min-height: 100vh;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: center;
+        max-width: 780px;
+        margin: 0 auto 24px;
+      }
+      header h2 {
+        font-size: 22px;
+        margin: 0;
+      }
+      header small {
+        display: block;
+        color: #62634e;
+        margin-top: 7px;
+      }
+      button {
+        background: white;
+        border: 1px solid #c9cbb7;
+        border-radius: 4px;
+        padding: 10px 15px;
+        cursor: pointer;
+        font: inherit;
+      }
+      figure {
+        margin: 0 auto;
+        max-width: 390px;
+      }
+      img {
+        width: 100%;
+        height: auto;
+        display: block;
+        box-shadow: 0 6px 24px #24251f14;
+      }
+      figcaption {
+        font-size: 11px;
+        line-height: 1.6;
+        color: #62634e;
+        padding: 14px 0;
+      }
+      a {
+        color: inherit;
+      }
+      .swatches {
+        display: flex;
+        gap: 6px;
+      }
+      .swatches i {
+        width: 30px;
+        height: 30px;
+        border: 1px solid #babb95;
+      }
+      .toplinks {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 12px;
+      }
+      @media (max-width: 750px) {
+        aside {
+          position: static;
+          width: auto;
+          padding: 18px;
+        }
+        aside nav {
+          display: flex;
+          overflow: auto;
+          white-space: nowrap;
+          margin-top: 12px;
+        }
+        aside p,
+        .swatches {
+          display: none;
+        }
+        main {
+          margin: 0;
+          padding: 18px 12px;
+        }
+        header h2 {
+          font-size: 18px;
+        }
+        header {
+          align-items: start;
+        }
+        button {
+          padding: 8px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <h1>ПЕРЕВОЗЧИК</h1>
+      <p>Полный редизайн Telegram mini-app.<br />Светло-жёлтый фон, белые рабочие поверхности и графитовая навигация.</p>
+      <div class="swatches">
+        <i style="background: #f5f5c7"></i><i style="background: #fff"></i><i style="background: #24251f"></i><i style="background: #e6ef78"></i>
+      </div>
+      <nav id="nav" aria-label="Экраны"></nav>
+      <p>Снимки реальных компонентов React.<br />Данные демонстрационные. Production не изменялся.</p>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <h2 id="title"></h2>
+          <small id="count"></small>
+        </div>
+        <div class="toplinks">
+          <button id="prev" aria-label="Предыдущий экран">←</button><button id="next" aria-label="Следующий экран">→</button><a id="download" download>PNG ↓</a>
+        </div>
+      </header>
+      <figure>
+        <img id="screen" alt="" />
+        <figcaption>
+          Один экран на странице. В полноразмерных снимках нижняя навигация перенесена в конец изображения, чтобы не перекрывать содержимое. В приложении она
+          закреплена у нижнего края окна.
+        </figcaption>
+      </figure>
+    </main>
+    <script>
+      const screens = [
+        { id: 'auto', title: 'Авто', file: 'implemented-auto.png' },
+        { id: 'trips', title: 'Ходки', file: 'implemented-trips.png' },
+        { id: 'expenses', title: 'Расходы', file: 'implemented-expenses.png' },
+        { id: 'analytics', title: 'Аналитика', file: 'implemented-analytics.png' },
+        { id: 'add-auto', title: 'Добавить машину', file: 'implemented-add-auto.png' },
+        { id: 'edit-auto', title: 'Редактировать машину', file: 'implemented-edit-auto.png' },
+        { id: 'add-trip', title: 'Создать ходку', file: 'implemented-add-trip.png' },
+        { id: 'edit-trip', title: 'Редактировать ходку', file: 'implemented-edit-trip.png' },
+        { id: 'add-expense', title: 'Добавить расход', file: 'implemented-add-expense.png' },
+        { id: 'edit-expense', title: 'Редактировать расход', file: 'implemented-edit-expense.png' },
+        { id: 'filtered-trips', title: 'Фильтр истории', file: 'implemented-filtered-trips.png' },
+        { id: 'filters', title: 'Свои даты', file: 'implemented-filters.png' },
+        { id: 'categories', title: 'Категории расходов', file: 'implemented-categories.png' },
+        { id: 'revenue-detail', title: 'Выручка по направлениям', file: 'implemented-revenue-detail.png' },
+        { id: 'route-detail', title: 'История направления', file: 'implemented-route-detail.png' },
+        { id: 'category-detail', title: 'Расходы по категориям', file: 'implemented-category-detail.png' },
+        { id: 'expense-detail', title: 'История категории', file: 'implemented-expense-detail.png' },
+        { id: 'vehicle-detail', title: 'История машины', file: 'implemented-vehicle-detail.png' },
+        { id: 'delete', title: 'Подтверждение удаления', file: 'implemented-delete.png' },
+        { id: 'error', title: 'Ошибка сохранения', file: 'implemented-error.png' },
+        { id: 'load-error', title: 'Ошибка загрузки', file: 'implemented-load-error.png' },
+        { id: 'empty', title: 'Пустой автопарк', file: 'implemented-empty.png' },
+        { id: 'empty-analytics', title: 'Нет данных за период', file: 'implemented-empty-analytics.png' },
+        { id: 'loading', title: 'Загрузка', file: 'implemented-loading.png' },
+        { id: 'viewer', title: 'Режим зрителя', file: 'implemented-viewer.png' },
+        { id: 'telegram-entry', title: 'Вход через Telegram', file: 'implemented-telegram-entry.png' },
+      ];
+      let i = 0;
+      const nav = document.getElementById('nav');
+      nav.innerHTML = screens.map((s, n) => '<a href="#' + s.id + '">' + String(n + 1).padStart(2, '0') + ' / ' + s.title + '</a>').join('');
+      function render() {
+        const found = screens.findIndex((s) => s.id === location.hash.slice(1));
+        i = found < 0 ? 0 : found;
+        const s = screens[i];
+        document.getElementById('title').textContent = s.title;
+        document.getElementById('count').textContent = i + 1 + ' / ' + screens.length + ' · мобильная ширина 390 px';
+        const img = document.getElementById('screen');
+        img.src = s.file;
+        img.alt = s.title + ' — ПЕРЕВОЗЧИК';
+        document.getElementById('download').href = s.file;
+        Array.from(nav.children).forEach((a, n) => (n === i ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+        window.scrollTo(0, 0);
+      }
+      window.onhashchange = render;
+      document.getElementById('prev').onclick = () => (location.hash = screens[(i - 1 + screens.length) % screens.length].id);
+      document.getElementById('next').onclick = () => (location.hash = screens[(i + 1) % screens.length].id);
+      render();
+    </script>
+  </body>
+</html>

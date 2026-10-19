@@ -3,7 +3,7 @@ import { api } from '../api';
 import { groupByDay, groupByVehicle, lastAddedDay, plural, rub, sum } from '../lib/format';
 import { expenseDraft, ExpenseForm, expensePayload, newExpense, rememberVehicle, type ExpenseDraft } from './forms';
 import type { Category, Expense, Vehicle } from './types';
-import { Choice, DayGroup, DeleteButton, Empty, ErrorNote, errorText, haptic, MoreButton, PAGE, Row, Sheet } from './ui';
+import { AddButton, PageTitle, Choice, DayGroup, DeleteButton, Empty, ErrorNote, errorText, haptic, MoreButton, PAGE, Row, Sheet } from './ui';
 
 type Filter = number | 'all';
 
@@ -35,6 +35,7 @@ export function Expenses({
   categories: Category[];
   reload: () => Promise<void>;
 }) {
+  const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [limit, setLimit] = useState(PAGE);
   const [editing, setEditing] = useState<Expense | null>(null);
@@ -69,9 +70,13 @@ export function Expenses({
 
   return (
     <>
-      <section className="block">
-        <h2>Новый расход</h2>
-        {vehicles.length && categories.length ? (
+      <PageTitle number="03 / Расходы" title="Расходы" description="Каждая трата — у своей машины" />
+      <AddButton onClick={() => setCreating(true)} disabled={!vehicles.length || !categories.length}>
+        Добавить расход
+      </AddButton>
+      {(!vehicles.length || !categories.length) && <Empty>Нужны хотя бы одна машина (вкладка «Авто») и одна категория (ниже).</Empty>}
+      {creating && (
+        <Sheet title="Новый расход" onClose={() => setCreating(false)}>
           <ExpenseForm
             vehicles={vehicles}
             categories={categories}
@@ -81,14 +86,12 @@ export function Expenses({
             keepVehicleAndDate
             lastDate={lastDate}
           />
-        ) : (
-          <Empty>Нужны хотя бы одна машина (вкладка «Авто») и одна категория (ниже).</Empty>
-        )}
-      </section>
+        </Sheet>
+      )}
 
       <section className="block">
         <div className="block-head">
-          <h2>История расходов</h2>
+          <h2>История</h2>
           <span className="block-total">
             {recordsLabel(filtered.length)} · {rub(sum(filtered, (x) => x.amount))}
           </span>
