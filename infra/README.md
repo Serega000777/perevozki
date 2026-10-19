@@ -71,6 +71,17 @@ docker compose logs --tail 20 backend bot
 - локальная правка Caddyfile в `/root/money_dock` может помешать `git pull` Amola, если Caddyfile
   поменяется в репозитории.
 
+## Вход из обычного браузера (для теста)
+
+Вне Telegram приложение показывает «Откройте через Telegram». Ссылка входа владельца на 24 часа,
+подписанная токеном бота прямо на сервере (токен с сервера не уходит):
+
+```bash
+cd /opt/perevozki && docker run --rm -v "$PWD:/w:ro" -w /w --entrypoint node perevozki-backend   scripts/dev-init-data.mjs --url https://perevozki.crm-cement.ru | tail -1
+```
+
+Ссылка = права владельца на сутки: не пересылать. `--id <другой>` — вход зрителем.
+
 ## Откат Perevozki
 
 `docker compose -f docker-compose.yml -f infra/docker-compose.proxy.yml down` (без `-v` — данные
