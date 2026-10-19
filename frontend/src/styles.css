@@ -234,6 +234,9 @@ h2 {
 .block {
   margin-top: 28px;
 }
+.equipment-periods {
+  grid-template-columns: repeat(5, 1fr);
+}
 .equipment-tabs + .block,
 .error + .block {
   margin-top: 0;
@@ -337,6 +340,26 @@ h2 {
   background: var(--dark);
   border-color: var(--dark);
   color: #fff;
+}
+.pair + .date-quick {
+  margin-top: -6px;
+}
+.date-chips .chip {
+  min-height: 34px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+.date-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+/* Последняя добавленная дата — сплошной лаймовый акцент, как у итогов в аналитике. */
+.date-chips .chip.last:not(.on) {
+  border-color: var(--lime);
+  background: var(--lime);
+  color: var(--dark);
 }
 
 .switch {
@@ -497,15 +520,39 @@ h2 {
   font-weight: 700;
   white-space: nowrap;
 }
-button.status {
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-}
 .status.paid {
   color: var(--ok);
 }
 .status.unpaid {
   color: var(--debt);
+}
+
+.row.has-check {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.check {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  background: #fff;
+  color: #c4c7bd;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.check svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 3;
+}
+.check.on {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #fff;
 }
 
 .vehicle-group + .vehicle-group {

@@ -11,6 +11,10 @@ export function todayKey(now = new Date()) {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }
 
+// Сдвиг календарного дня: через полдень UTC, чтобы переход на летнее время не съедал сутки.
+export const shiftDay = (key: string, days: number) => new Date(Date.parse(`${key}T12:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+export const shortDate = (key: string) => `${key.slice(8, 10)}.${key.slice(5, 7)}`;
+
 // Сервер хранит календарный день как полдень UTC, поэтому ключ дня — первые 10 символов ISO.
 export const dayKey = (iso: string) => iso.slice(0, 10);
 
@@ -39,6 +43,9 @@ export function plural(n: number, forms: [string, string, string]) {
 export const sum = <T>(rows: T[], value: (row: T) => number | string) => rows.reduce((total, row) => total + Number(value(row)), 0);
 
 type Dated = { id: number; date: string };
+
+// День последней добавленной записи (по id, а не по дате): её удобно выбрать для следующей.
+export const lastAddedDay = (rows: Dated[]) => (rows.length ? dayKey(rows.reduce((a, b) => (b.id > a.id ? b : a)).date) : null);
 
 // Дни по убыванию, внутри дня — сначала добавленные позже.
 export function groupByDay<T extends Dated>(rows: T[]) {

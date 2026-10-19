@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { toNumberInput, todayKey } from '../lib/format';
 import type { Category, Expense, Trip, Vehicle } from './types';
-import { Choice, ErrorNote, errorText, Field } from './ui';
+import { Choice, DateChips, ErrorNote, errorText, Field } from './ui';
 
 const LAST_VEHICLE = 'perevozki:lastVehicle';
 
@@ -71,12 +71,14 @@ export function TripForm({
   submitLabel,
   onSubmit,
   keepVehicleAndDate = false,
+  lastDate,
 }: {
   vehicles: Vehicle[];
   initial: TripDraft;
   submitLabel: string;
   onSubmit: (draft: TripDraft) => Promise<void>;
   keepVehicleAndDate?: boolean;
+  lastDate?: string | null;
 }) {
   const [d, setD] = useState(initial);
   const set = <K extends keyof TripDraft>(key: K, value: TripDraft[K]) => setD((x) => ({ ...x, [key]: value }));
@@ -93,6 +95,7 @@ export function TripForm({
         <Field label="Дата" type="date" value={d.date} onChange={(e) => set('date', e.target.value)} required />
         <Field label="Цена, ₽" inputMode="decimal" placeholder="0" value={d.amount} onChange={(e) => set('amount', e.target.value)} required />
       </div>
+      <DateChips value={d.date} onChange={(v) => set('date', v)} last={lastDate} />
       <Field label="Куда ездил" placeholder="Карьер, объект, адрес" value={d.destination} onChange={(e) => set('destination', e.target.value)} required />
       <div className="pair">
         <Field label="Пробег, км" inputMode="decimal" placeholder="—" value={d.mileage} onChange={(e) => set('mileage', e.target.value)} />
@@ -135,6 +138,7 @@ export function ExpenseForm({
   submitLabel,
   onSubmit,
   keepVehicleAndDate = false,
+  lastDate,
 }: {
   vehicles: Vehicle[];
   categories: Category[];
@@ -142,6 +146,7 @@ export function ExpenseForm({
   submitLabel: string;
   onSubmit: (draft: ExpenseDraft) => Promise<void>;
   keepVehicleAndDate?: boolean;
+  lastDate?: string | null;
 }) {
   const [d, setD] = useState(initial);
   const set = <K extends keyof ExpenseDraft>(key: K, value: ExpenseDraft[K]) => setD((x) => ({ ...x, [key]: value }));
@@ -154,6 +159,7 @@ export function ExpenseForm({
         <Field label="Дата" type="date" value={d.date} onChange={(e) => set('date', e.target.value)} required />
         <Field label="Сумма, ₽" inputMode="decimal" placeholder="0" value={d.amount} onChange={(e) => set('amount', e.target.value)} required />
       </div>
+      <DateChips value={d.date} onChange={(v) => set('date', v)} last={lastDate} />
       <Field label="Комментарий" placeholder="Кому, за что" value={d.comment} onChange={(e) => set('comment', e.target.value)} />
       <ErrorNote>{error}</ErrorNote>
       <button className="primary" disabled={busy || d.vehicleId == null || d.categoryId == null}>

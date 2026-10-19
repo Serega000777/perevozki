@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { api } from '../api';
-import { groupByDay, groupByVehicle, plural, rub, sum } from '../lib/format';
+import { groupByDay, groupByVehicle, lastAddedDay, plural, rub, sum } from '../lib/format';
 import { expenseDraft, ExpenseForm, expensePayload, newExpense, rememberVehicle, type ExpenseDraft } from './forms';
 import type { Category, Expense, Vehicle } from './types';
 import { Choice, DayGroup, DeleteButton, Empty, ErrorNote, errorText, haptic, MoreButton, PAGE, Row, Sheet } from './ui';
@@ -41,6 +41,7 @@ export function Expenses({
   const [error, setError] = useState('');
 
   const filtered = filter === 'all' ? expenses : expenses.filter((x) => x.vehicleId === filter);
+  const lastDate = lastAddedDay(expenses);
   const shown = [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, limit);
   const groups = filter === 'all' ? groupByVehicle(shown, vehicles) : [{ vehicle: null, rows: shown }];
 
@@ -78,6 +79,7 @@ export function Expenses({
             submitLabel="Добавить расход"
             onSubmit={create}
             keepVehicleAndDate
+            lastDate={lastDate}
           />
         ) : (
           <Empty>Нужны хотя бы одна машина (вкладка «Авто») и одна категория (ниже).</Empty>
@@ -132,7 +134,14 @@ export function Expenses({
             setError('');
           }}
         >
-          <ExpenseForm vehicles={vehicles} categories={categories} initial={expenseDraft(editing)} submitLabel="Сохранить" onSubmit={save} />
+          <ExpenseForm
+            vehicles={vehicles}
+            categories={categories}
+            initial={expenseDraft(editing)}
+            submitLabel="Сохранить"
+            onSubmit={save}
+            lastDate={lastDate}
+          />
           <DeleteButton label="Удалить расход" onConfirm={remove} />
           <ErrorNote>{error}</ErrorNote>
         </Sheet>

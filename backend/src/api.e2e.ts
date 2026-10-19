@@ -155,6 +155,11 @@ test('полный сценарий: техника → ходки → расх�
   assert.equal(month.body.expenseRows.length, 1);
   const custom = await call('GET', `/api/equipment/analytics?period=custom&from=${today}&to=${today}&vehicleId=${vehicleId}`);
   assert.equal(custom.body.trips, 2);
+  const oldTrip = await call('POST', '/api/equipment/trips', { vehicleId, date: '2020-01-15', destination: 'Давно', amount: 1000, paid: true });
+  const allTime = await call('GET', `/api/equipment/analytics?period=all&vehicleId=${vehicleId}`);
+  assert.deepEqual([allTime.body.trips, allTime.body.revenue, allTime.body.from], [3, 16000, null]);
+  assert.equal((await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`)).body.trips, 2);
+  assert.equal((await call('DELETE', `/api/equipment/trips/${oldTrip.body.id}`)).status, 200);
   const yesterday = moscowDay(-1);
   const empty = await call('GET', `/api/equipment/analytics?period=custom&from=${yesterday}&to=${yesterday}&vehicleId=${vehicleId}`);
   assert.deepEqual([empty.body.trips, empty.body.revenue, empty.body.byVehicle], [0, 0, []]);

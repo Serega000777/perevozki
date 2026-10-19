@@ -12,7 +12,8 @@ const periods = [
   { value: 'day', label: 'День' },
   { value: 'week', label: 'Неделя' },
   { value: 'month', label: 'Месяц' },
-  { value: 'custom', label: 'Свой период' },
+  { value: 'all', label: 'Всё время' },
+  { value: 'custom', label: 'Свои даты' },
 ];
 
 export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[]; readOnly?: boolean }) {

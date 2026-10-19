@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { groupByDay, groupByVehicle, num, plural, rub, sum } from '../lib/format';
+import { groupByDay, groupByVehicle, lastAddedDay, num, plural, rub, sum } from '../lib/format';
 import { newTrip, rememberVehicle, TripForm, tripDraft, tripPayload, type TripDraft } from './forms';
 import type { Trip, Vehicle } from './types';
-import { Choice, DayGroup, DeleteButton, Empty, ErrorNote, errorText, haptic, MoreButton, PAGE, PaidStatus, Row, Sheet } from './ui';
+import { Choice, DayGroup, DeleteButton, Empty, ErrorNote, errorText, haptic, MoreButton, PAGE, PaidCheck, PaidStatus, Row, Sheet } from './ui';
 
 type Filter = number | 'all';
 
@@ -33,7 +33,8 @@ export function TripDays({
               meta={tripMeta(t)}
               amount={t.amount}
               onOpen={onOpen && (() => onOpen(t))}
-              side={<PaidStatus paid={t.paid} onToggle={onToggle && (() => onToggle(t))} />}
+              side={<PaidStatus paid={t.paid} />}
+              check={onToggle && <PaidCheck paid={t.paid} onToggle={() => onToggle(t)} />}
             />
           ))}
         </DayGroup>
@@ -49,6 +50,7 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
   const [error, setError] = useState('');
 
   const filtered = filter === 'all' ? trips : trips.filter((t) => t.vehicleId === filter);
+  const lastDate = lastAddedDay(trips);
   const shown = [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, limit);
   const groups = filter === 'all' ? groupByVehicle(shown, vehicles) : [{ vehicle: null, rows: shown }];
 
@@ -88,7 +90,7 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
       <section className="block">
         <h2>Новая ходка</h2>
         {vehicles.length ? (
-          <TripForm vehicles={vehicles} initial={newTrip(vehicles)} submitLabel="Добавить ходку" onSubmit={create} keepVehicleAndDate />
+          <TripForm vehicles={vehicles} initial={newTrip(vehicles)} submitLabel="Добавить ходку" onSubmit={create} keepVehicleAndDate lastDate={lastDate} />
         ) : (
           <Empty>Сначала добавьте машину во вкладке «Авто».</Empty>
         )}
@@ -140,7 +142,7 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
             setError('');
           }}
         >
-          <TripForm vehicles={vehicles} initial={tripDraft(editing)} submitLabel="Сохранить" onSubmit={save} />
+          <TripForm vehicles={vehicles} initial={tripDraft(editing)} submitLabel="Сохранить" onSubmit={save} lastDate={lastDate} />
           <DeleteButton label="Удалить ходку" onConfirm={remove} />
           <ErrorNote>{error}</ErrorNote>
         </Sheet>

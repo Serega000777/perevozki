@@ -120,7 +120,9 @@ export function equipmentRouter(prisma: PrismaClient) {
       from = calendarDate(req.query.from);
       to = new Date(calendarDate(req.query.to).getTime() + 24 * 60 * 60 * 1000);
     }
-    const where = { ...(vehicleId ? { vehicleId } : {}), date: { gte: from, ...(to ? { lt: to } : {}) } };
+    // period=all — «Всё время»: без ограничения по дате.
+    const allTime = req.query.period === 'all';
+    const where = { ...(vehicleId ? { vehicleId } : {}), ...(allTime ? {} : { date: { gte: from, ...(to ? { lt: to } : {}) } }) };
     const [trips, expenses] = await Promise.all([
       prisma.equipmentTrip.findMany({ where, include: { vehicle: true }, orderBy: { date: 'asc' } }),
       prisma.equipmentExpense.findMany({ where, include: { vehicle: true, category: true }, orderBy: { date: 'asc' } }),
@@ -141,7 +143,7 @@ export function equipmentRouter(prisma: PrismaClient) {
       }, {}),
     ).map((x) => ({ ...x, profit: x.revenue - x.expenses }));
     res.json({
-      from,
+      from: allTime ? null : from,
       to: to ?? new Date(),
       revenue,
       expenses: costs,

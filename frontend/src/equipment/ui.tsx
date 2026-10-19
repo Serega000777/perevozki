@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
-import { ChevronLeft, X } from 'lucide-react';
-import { dayTitle, rub } from '../lib/format';
+import { Check, ChevronLeft, X } from 'lucide-react';
+import { dayTitle, rub, shiftDay, shortDate, todayKey } from '../lib/format';
 
 export const haptic = () => window.Telegram?.WebApp.HapticFeedback?.notificationOccurred('success');
 export const errorText = (error: unknown) => (error instanceof Error ? error.message : 'Не удалось выполнить операцию');
@@ -118,12 +118,14 @@ export function Row({
   meta,
   amount,
   side,
+  check,
   onOpen,
 }: {
   title: ReactNode;
   meta?: ReactNode;
   amount?: number | string;
   side?: ReactNode;
+  check?: ReactNode;
   onOpen?: () => void;
 }) {
   const main = (
@@ -133,7 +135,7 @@ export function Row({
     </>
   );
   return (
-    <div className="row">
+    <div className={check ? 'row has-check' : 'row'}>
       {onOpen ? (
         <button type="button" className="row-main" onClick={onOpen}>
           {main}
@@ -145,18 +147,55 @@ export function Row({
         {amount != null && <span className="money">{rub(amount)}</span>}
         {side}
       </div>
+      {check}
     </div>
   );
 }
 
-export function PaidStatus({ paid, onToggle }: { paid: boolean; onToggle?: () => void }) {
-  const className = paid ? 'status paid' : 'status unpaid';
-  const label = paid ? 'Оплачено' : 'Не отдали';
-  if (!onToggle) return <span className={className}>{label}</span>;
+export const PaidStatus = ({ paid }: { paid: boolean }) => <span className={paid ? 'status paid' : 'status unpaid'}>{paid ? 'Оплачено' : 'Не отдали'}</span>;
+
+// Крупная галочка справа: на телефоне по ней попасть проще, чем по тексту статуса.
+export function PaidCheck({ paid, onToggle }: { paid: boolean; onToggle: () => void }) {
   return (
-    <button type="button" className={className} aria-pressed={paid} onClick={onToggle} title="Нажмите, чтобы изменить">
-      {label}
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={paid}
+      aria-label={paid ? 'Оплачено. Снять отметку' : 'Отметить оплату'}
+      className={paid ? 'check on' : 'check'}
+      onClick={onToggle}
+    >
+      <Check aria-hidden />
     </button>
+  );
+}
+
+// Быстрый выбор даты; дата последней добавленной записи подсвечена — к ней часто возвращаются.
+export function DateChips({ value, onChange, last }: { value: string; onChange: (value: string) => void; last?: string | null }) {
+  const today = todayKey();
+  const options = [
+    { value: today, label: 'Сегодня' },
+    { value: shiftDay(today, -1), label: 'Вчера' },
+    { value: shiftDay(today, -2), label: 'Позавчера' },
+  ];
+  if (last && !options.some((o) => o.value === last)) options.push({ value: last, label: shortDate(last) });
+  return (
+    <div className="date-quick">
+      <div className="chips date-chips" role="group" aria-label="Быстрый выбор даты">
+        {options.map((o) => (
+          <button
+            type="button"
+            key={o.value}
+            className={['chip', o.value === value && 'on', o.value === last && 'last'].filter(Boolean).join(' ')}
+            aria-pressed={o.value === value}
+            onClick={() => onChange(o.value)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {last && <span className="date-hint">Подсвечен день последней добавленной записи</span>}
+    </div>
   );
 }
 

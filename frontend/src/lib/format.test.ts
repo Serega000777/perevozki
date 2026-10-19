@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dayTitle, groupBy, groupByDay, groupByVehicle, plural, rub, toNumberInput, todayKey } from './format';
+import { dayTitle, lastAddedDay, groupBy, groupByDay, groupByVehicle, plural, rub, shiftDay, shortDate, toNumberInput, todayKey } from './format';
 
 const nbsp = (s: string) => s.replace(/[  ]/g, ' ');
 
@@ -22,6 +22,13 @@ test('заголовок дня: сегодня, текущий и прошлы�
   assert.equal(dayTitle('2025-12-31', '2026-10-17'), '31 декабря 2025 г., ср');
 });
 
+test('вчера, позавчера и короткая дата', () => {
+  assert.equal(shiftDay('2026-10-19', -1), '2026-10-18');
+  assert.equal(shiftDay('2026-03-01', -2), '2026-02-27');
+  assert.equal(shiftDay('2026-01-01', -1), '2025-12-31');
+  assert.equal(shortDate('2026-10-11'), '11.10');
+});
+
 test('ввод чисел с телефона: запятая и пробелы', () => {
   assert.equal(toNumberInput('12,5'), '12.5');
   assert.equal(toNumberInput(' 12 000 '), '12000');
@@ -36,6 +43,11 @@ test('склонения', () => {
 });
 
 const trip = (id: number, date: string, vehicleId: number, amount = 100) => ({ id, date: `${date}T12:00:00.000Z`, vehicleId, amount });
+
+test('последняя добавленная — по id, а не по самой поздней дате', () => {
+  assert.equal(lastAddedDay([trip(5, '2026-10-11', 1), trip(9, '2026-10-02', 1), trip(7, '2026-10-17', 2)]), '2026-10-02');
+  assert.equal(lastAddedDay([]), null);
+});
 
 test('по дням: даты по убыванию, внутри дня свежие сверху', () => {
   const groups = groupByDay([trip(1, '2026-10-12', 1), trip(3, '2026-10-14', 1), trip(2, '2026-10-12', 2)]);
