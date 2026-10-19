@@ -26,10 +26,12 @@ export default function App() {
   }, []);
   return (
     <main>
-      <header>
+      <header className="app-brand">
         <div>
           <span className="eyebrow">{me ? `${me.name}${me.role === 'owner' ? '' : ' · просмотр'}` : 'Учёт техники'}</span>
-          <h1>Перевозки</h1>
+          <a href="#" aria-label="Перевозчик — начало">
+            ПЕРЕВОЗЧИК
+          </a>
         </div>
       </header>
       {error && !window.Telegram?.WebApp.initData ? (

@@ -2,21 +2,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --paper: #f1f2ed;
-  --page: #f8f8f5;
+  --paper: #e9e8df;
+  --page: #f5f5c7;
   --surface: #ffffff;
-  --ink: #20231f;
-  --ink-2: #5d6258;
-  --ink-3: #868a81;
-  --line: #e7e8e2;
-  --line-strong: #d6d8cf;
-  --dark: #20241d;
-  --lime: #d6ff45;
-  --ok: #4b7612;
-  --debt: #b0601b;
-  --danger: #b3402f;
-  --radius: 12px;
-  --radius-sm: 9px;
+  --ink: #24251f;
+  --ink-2: #62634e;
+  --ink-3: #6c6e5c;
+  --line: #e3e4d6;
+  --line-strong: #c9cbb7;
+  --dark: #24251f;
+  --lime: #e6ef78;
+  --ok: #34362e;
+  --debt: #45472f;
+  --danger: #24251f;
+  --radius: 6px;
+  --radius-sm: 4px;
 
   font-family: Manrope, system-ui, sans-serif;
   color: var(--ink);
@@ -55,10 +55,10 @@ button:disabled {
   outline-offset: 2px;
 }
 main {
-  max-width: 520px;
+  max-width: 440px;
   min-height: 100vh;
   margin: auto;
-  padding: 20px 16px 96px;
+  padding: calc(22px + env(safe-area-inset-top)) 20px calc(108px + env(safe-area-inset-bottom));
   background: var(--page);
 }
 header {
@@ -95,7 +95,7 @@ h2 {
     padding: 24px;
   }
   main {
-    border-radius: 28px;
+    border-radius: 6px;
     min-height: calc(100vh - 48px);
   }
 }
@@ -106,7 +106,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  background: #e9ebe4;
+  background: #eeeedf;
   padding: 4px;
   border-radius: 14px;
   margin-bottom: 18px;
@@ -135,11 +135,11 @@ h2 {
 .equipment-tabs button.selected,
 .equipment-periods button.selected {
   background: #fff;
-  color: #20241d;
+  color: #24251f;
   box-shadow: 0 3px 9px #252b1d1a;
 }
 
-/* --- Аналитика: итоги и «По технике». Владелец просил не менять — правила перенесены как есть. --- */
+/* Финансовые итоги: прежние значения и действия, новая палитра по запросу владельца. */
 .equipment-summary {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -147,16 +147,16 @@ h2 {
   margin-top: 16px;
 }
 .equipment-summary > div {
-  background: #20241d;
+  background: #24251f;
   color: #fff;
-  border-radius: 17px;
+  border-radius: 6px;
   padding: 15px;
 }
 .equipment-summary > button {
-  background: #20241d;
+  background: #24251f;
   color: #fff;
   border: 0;
-  border-radius: 17px;
+  border-radius: 6px;
   padding: 15px;
   text-align: left;
 }
@@ -167,32 +167,32 @@ h2 {
 }
 .equipment-summary strong {
   display: block;
-  color: #d6ff45;
+  color: #e6ef78;
   font-size: 20px;
   margin-top: 5px;
 }
 .equipment-summary strong.negative {
-  color: #ff8a7a;
+  color: #ffffff;
 }
 .equipment-summary .unpaid {
-  background: #fff0df;
-  color: #20241d;
+  background: #e6ef78;
+  color: #24251f;
 }
 .equipment-summary .unpaid span {
-  color: #93734b;
+  color: #555739;
 }
 .equipment-summary .unpaid strong {
-  color: #c97825;
+  color: #24251f;
 }
 .equipment-analytics-list {
   display: flex;
   flex-direction: column;
   gap: 9px;
 }
-.equipment-analytics-list article {
+.equipment-analytics-list .vehicle-result {
   background: #fff;
-  border: 1px solid #e7e8e2;
-  border-radius: 17px;
+  border: 1px solid #e3e4d6;
+  border-radius: 6px;
   padding: 14px;
   cursor: pointer;
 }
@@ -204,7 +204,7 @@ h2 {
 }
 .equipment-analytics-list header small {
   display: block;
-  color: #858980;
+  color: #6c6e5c;
   font-size: 9px;
   margin-top: 3px;
 }
@@ -217,16 +217,16 @@ h2 {
 .equipment-bars i {
   height: 7px;
   border-radius: 5px;
-  background: #a8cb31;
+  background: #c4ce50;
   min-width: 2px;
 }
 .equipment-bars i + i {
-  background: #e79478;
+  background: #34362e;
 }
 .equipment-analytics-list footer {
   display: flex;
   justify-content: space-between;
-  color: #777c72;
+  color: #62634e;
   font-size: 9px;
 }
 
@@ -301,7 +301,7 @@ h2 {
 }
 .field input::placeholder,
 .inline-add input::placeholder {
-  color: #aeb2a8;
+  color: #7b7d6d;
 }
 .field select {
   appearance: none;
@@ -425,7 +425,7 @@ h2 {
   width: 100%;
   height: 46px;
   margin-top: 12px;
-  border: 1px solid #e9cfc9;
+  border: 1px solid #858674;
   border-radius: var(--radius-sm);
   background: #fff;
   color: var(--danger);
@@ -582,7 +582,7 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   padding: 7px 14px;
-  background: #f3f3ee;
+  background: #f0f0e6;
   font-size: 12.5px;
   font-weight: 700;
   color: var(--ink-2);
@@ -608,7 +608,7 @@ h2 {
   margin: 10px 0;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  background: #fbeeeb;
+  background: #f0f0d6;
   color: var(--danger);
   font-size: 13px;
 }
@@ -658,7 +658,7 @@ h2 {
 .sheet {
   display: flex;
   flex-direction: column;
-  width: min(520px, 100%);
+  width: min(440px, 100%);
   max-height: 90vh;
   max-height: 90dvh;
   border-radius: 16px 16px 0 0;
@@ -701,7 +701,7 @@ h2 {
   height: 36px;
   border: 0;
   border-radius: 50%;
-  background: #e9ebe4;
+  background: #eeeedf;
 }
 .sheet-close svg {
   width: 18px;
@@ -735,4 +735,651 @@ h2 {
 }
 .sheet-section span {
   font-variant-numeric: tabular-nums;
+}
+
+/* ПЕРЕВОЗЧИК — мобильная ведомость. */
+.app-brand {
+  flex-direction: row-reverse;
+  align-items: center;
+  border-bottom: 1px solid #babb95;
+  margin: 0;
+  padding: 0 0 16px;
+}
+.app-brand > div {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+.app-brand a {
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.app-brand .eyebrow {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  max-width: 48%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.page-title {
+  margin: 26px 0 22px;
+}
+.page-title h1 {
+  font-size: 36px;
+  line-height: 1.12;
+  letter-spacing: -1.7px;
+  margin: 7px 0 0;
+}
+.page-title p {
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin: 10px 0 0;
+}
+.page-title .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  color: var(--ink-2);
+}
+.equipment-tabs {
+  position: fixed;
+  top: auto;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, 100%);
+  margin: 0;
+  border-radius: 0;
+  background: var(--dark);
+  padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+  gap: 4px;
+  z-index: 10;
+}
+.equipment-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 52px;
+  border-radius: 3px;
+  color: #c2c3b5;
+  font-size: 10px;
+  padding: 6px 0;
+  font-weight: 600;
+}
+.equipment-tabs button svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.6;
+}
+.equipment-tabs button.selected {
+  background: transparent;
+  color: var(--lime);
+  box-shadow: none;
+}
+.equipment-tabs button:focus-visible {
+  outline-color: var(--lime);
+}
+.add-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+.add-button svg {
+  width: 20px;
+  height: 20px;
+}
+.block-head {
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 12px;
+}
+.block-head h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+}
+.block-total {
+  color: var(--ink-2);
+  font-size: 11px;
+  white-space: normal;
+}
+.fleet-ledger .row {
+  padding: 20px 18px;
+  gap: 12px;
+}
+.fleet-ledger .row-title {
+  font-size: 21px;
+  letter-spacing: -0.6px;
+  font-weight: 800;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.vehicle-number {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-3);
+  min-width: 17px;
+}
+.fleet-ledger .row-meta {
+  padding-left: 29px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.vehicle-usage {
+  display: block;
+  margin-top: 16px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.fleet-ledger .row-note {
+  font-size: 22px;
+  color: var(--ink);
+}
+.row-main {
+  min-height: 44px;
+  justify-content: center;
+}
+.row {
+  padding: 12px 14px;
+  gap: 9px;
+}
+.row-title {
+  font-size: 14px;
+}
+.row-meta {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.row-side .money {
+  font-size: 13px;
+}
+.status {
+  font-size: 10px;
+}
+.status.unpaid {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.check {
+  width: 36px;
+  height: 44px;
+  border-radius: 4px;
+  border-width: 1px;
+}
+.check.on {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--ink);
+}
+.vehicle-head {
+  font-size: 16px;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 22px;
+}
+.vehicle-head span:last-child {
+  font-size: 10px;
+  white-space: normal;
+}
+.ledger-day {
+  font-size: 11px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+.chips {
+  gap: 6px;
+}
+.chip {
+  font-size: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+.date-chips {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+.date-chips .chip {
+  font-size: 11px;
+  padding: 7px 3px;
+  min-height: 40px;
+}
+.date-hint {
+  font-size: 10px;
+  line-height: 1.4;
+}
+.field > span {
+  font-size: 11px;
+}
+.switch {
+  font-size: 12px;
+  padding: 3px 0;
+  min-height: 44px;
+}
+.switch input:checked {
+  background: var(--ink);
+}
+.switch input:checked::before {
+  background: var(--lime);
+}
+.equipment-periods {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: none;
+  border-radius: 0;
+  border-bottom: 1px solid #babb95;
+  padding: 0;
+  gap: 0;
+  margin: 10px 0 18px;
+}
+.equipment-periods button {
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  min-height: 44px;
+  font-size: 10px;
+  color: var(--ink-2);
+  padding: 10px 1px;
+}
+.equipment-periods button.selected {
+  background: transparent;
+  border-bottom-color: var(--ink);
+  box-shadow: none;
+  color: var(--ink);
+}
+.equipment-summary {
+  gap: 1px;
+  background: #525347;
+  overflow: hidden;
+  border-radius: 6px;
+  margin-top: 18px;
+}
+.equipment-summary > button,
+.equipment-summary > div {
+  border-radius: 0;
+  padding: 17px 14px;
+  min-width: 0;
+}
+.equipment-summary strong {
+  font-size: clamp(16px, 5vw, 21px);
+  letter-spacing: -0.6px;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.equipment-summary > button:first-child strong {
+  color: var(--lime);
+}
+.equipment-summary .unpaid {
+  background: var(--lime);
+}
+.equipment-summary .unpaid strong {
+  color: var(--ink);
+}
+.equipment-summary span {
+  font-size: 10px;
+}
+.equipment-summary strong.negative {
+  color: white;
+}
+.analytics-heading {
+  margin: 26px 0 8px;
+}
+.equipment-analytics-list {
+  gap: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+.equipment-analytics-list .vehicle-result {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 18px;
+  background: white;
+}
+.equipment-analytics-list .vehicle-result:last-child {
+  border-bottom: 0;
+}
+.equipment-analytics-list header {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.equipment-analytics-list header strong {
+  font-size: 15px;
+}
+.equipment-analytics-list header small {
+  font-size: 10px;
+}
+.equipment-analytics-list header b {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.equipment-analytics-list footer {
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+.equipment-bars i {
+  border-radius: 0;
+  min-width: 0;
+  height: 5px;
+}
+.cashflow {
+  background: white;
+  border-radius: 6px;
+  padding: 18px;
+  margin-top: 16px;
+}
+.cashflow .block-head h2 {
+  font-size: 16px;
+}
+.cashflow svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.chart-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.chart-label {
+  font-size: 9px;
+  fill: var(--ink-2);
+  font-family: inherit;
+}
+.chart-income {
+  fill: #c4ce50;
+}
+.chart-expense {
+  fill: #34362e;
+}
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 10px;
+  color: var(--ink-2);
+  margin: 10px 0 12px;
+}
+.chart-legend span:before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 5px;
+  vertical-align: middle;
+  background: #c4ce50;
+  margin-right: 6px;
+}
+.chart-legend span + span:before {
+  background: #34362e;
+}
+.chart-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.7fr;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+}
+.chart-metrics span {
+  display: block;
+  font-size: 9px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  min-height: 26px;
+}
+.chart-metrics strong {
+  display: block;
+  font-size: 13px;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.chart-data {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.chart-data summary {
+  cursor: pointer;
+  min-height: 32px;
+  padding: 8px 0;
+}
+.table-scroll {
+  overflow: auto;
+}
+.chart-data table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11px;
+}
+.chart-data caption {
+  text-align: left;
+  margin: 8px 0;
+}
+.chart-data td,
+.chart-data th {
+  padding: 8px 4px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+.chart-data th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.category-chart {
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px 18px;
+}
+.category-result {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+  text-align: left;
+}
+.category-result:last-child {
+  border: 0;
+}
+.category-result > span:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.category-result strong {
+  font-size: 12px;
+}
+.category-result small {
+  color: var(--ink-2);
+}
+.category-track {
+  display: block;
+  height: 5px;
+  background: #efefe4;
+  margin-top: 10px;
+}
+.category-track i {
+  display: block;
+  height: 100%;
+  background: #34362e;
+}
+.category-result:nth-child(3n + 2) i {
+  background: #c4ce50;
+}
+.category-result:nth-child(3n) i {
+  background: #8e9080;
+}
+.sheet {
+  background: #fffef2;
+  border-radius: 10px 10px 0 0;
+  max-height: 92dvh;
+  outline: none;
+}
+.sheet-head {
+  padding: 20px;
+  border-color: var(--line);
+}
+.sheet-head h3 {
+  font-size: 23px;
+  letter-spacing: -0.7px;
+}
+.sheet-body {
+  padding: 20px 20px calc(28px + env(safe-area-inset-bottom));
+}
+.sheet-close {
+  border-radius: 4px;
+  width: 44px;
+  height: 44px;
+}
+.sheet .form {
+  gap: 15px;
+}
+.sheet-back {
+  min-height: 44px;
+}
+.sheet .primary {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.empty {
+  background: white;
+  border-top: 3px solid var(--ink);
+  border-radius: 0 0 6px 6px;
+  padding: 24px 20px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin-top: 16px;
+}
+.loading {
+  background: white;
+  padding: 24px 20px;
+  border-radius: 6px;
+  margin-top: 20px;
+  color: var(--ink-2);
+  border-top: 3px solid var(--ink);
+}
+.error {
+  border-left: 3px solid var(--ink);
+  line-height: 1.6;
+  border-radius: 0;
+  background: #f0f0d6;
+}
+.success {
+  font-size: 12px;
+  border-left: 3px solid var(--ink);
+  padding: 10px 12px;
+  background: #f0f0d6;
+  margin: 0;
+}
+.delete {
+  color: var(--ink);
+  text-decoration: underline;
+  min-height: 46px;
+}
+.delete.armed {
+  background: var(--ink);
+  color: white;
+}
+.inline-add {
+  flex-wrap: wrap;
+}
+.inline-add input {
+  min-width: 120px;
+}
+.secondary {
+  min-height: 44px;
+  height: auto;
+}
+.link {
+  min-height: 44px;
+}
+input[type='date'] {
+  min-width: 0;
+  max-width: 100%;
+}
+.field input:focus-visible,
+.field select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+@media (min-width: 700px) {
+  .equipment-tabs {
+    border-radius: 6px 6px 0 0;
+  }
+  .sheet {
+    margin-bottom: 16px;
+    border-radius: 10px;
+  }
+  .app-brand {
+    margin-top: 0;
+  }
+}
+@media (max-width: 360px) {
+  main {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .page-title h1 {
+    font-size: 32px;
+  }
+  .sheet-body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .sheet-head {
+    padding: 16px 14px;
+  }
+  .row {
+    padding: 10px;
+    gap: 6px;
+  }
+  .row-side .money {
+    font-size: 12px;
+  }
+  .check {
+    width: 32px;
+  }
+  .equipment-summary > div,
+  .equipment-summary > button {
+    padding: 15px 10px;
+  }
+  .chart-metrics strong {
+    font-size: 11px;
+  }
+  .cashflow {
+    padding: 14px;
+  }
+  .field > span {
+    font-size: 10px;
+  }
+  .chip {
+    padding: 7px 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }

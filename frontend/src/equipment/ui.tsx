@@ -1,9 +1,28 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
-import { Check, ChevronLeft, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Check, ChevronLeft, Plus, X } from 'lucide-react';
 import { dayTitle, rub, shiftDay, shortDate, todayKey } from '../lib/format';
 
 export const haptic = () => window.Telegram?.WebApp.HapticFeedback?.notificationOccurred('success');
 export const errorText = (error: unknown) => (error instanceof Error ? error.message : 'Не удалось выполнить операцию');
+
+export function PageTitle({ number, title, description }: { number: string; title: string; description: string }) {
+  return (
+    <div className="page-title">
+      <span className="eyebrow">{number}</span>
+      <h1>{title}</h1>
+      <p>{description}</p>
+    </div>
+  );
+}
+export function AddButton({ children, onClick, disabled = false }: { children: ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button className="primary add-button" onClick={onClick} disabled={disabled}>
+      {children}
+      <Plus aria-hidden="true" />
+    </button>
+  );
+}
 
 export function Field({ label, ...props }: { label: string } & InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -27,12 +46,11 @@ export function Choice<T extends string | number>({
   onChange: (value: T) => void;
 }) {
   const chips = (
-    <div className="chips" role="radiogroup" aria-label={label}>
+    <div className="chips" role="group" aria-label={label || 'Фильтр по машине'}>
       {options.map((option) => (
         <button
           type="button"
-          role="radio"
-          aria-checked={option.value === value}
+          aria-pressed={option.value === value}
           className={option.value === value ? 'chip on' : 'chip'}
           onClick={() => onChange(option.value)}
           key={String(option.value)}
@@ -52,21 +70,49 @@ export function Choice<T extends string | number>({
 }
 
 export function Sheet({ title, onClose, onBack, children }: { title: string; onClose: () => void; onBack?: () => void; children: ReactNode }) {
+  const dialog = useRef<HTMLElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close.current();
+    const trigger = document.activeElement as HTMLElement | null;
+    const main = document.querySelector('main');
+    const previousInert = main?.inert;
+    if (main) main.inert = true;
+    // Focus the dialog heading rather than an input: opening a sheet must not summon the mobile keyboard.
+    dialog.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close.current();
+      if (e.key !== 'Tab') return;
+      const elements = [
+        ...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]') ?? []),
+      ];
+      const first = elements[0],
+        last = elements.at(-1);
+      if (!first) {
+        e.preventDefault();
+        return;
+      }
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = previous;
+      if (main) main.inert = previousInert ?? false;
+      trigger?.focus();
       window.removeEventListener('keydown', onKey);
     };
   }, []);
-  return (
+  return createPortal(
     <div className="sheet-backdrop" onClick={onClose}>
-      <section className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+      <section ref={dialog} tabIndex={-1} className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <header className="sheet-head">
           {onBack && (
             <button type="button" className="sheet-back" onClick={onBack}>
@@ -81,7 +127,8 @@ export function Sheet({ title, onClose, onBack, children }: { title: string; onC
         </header>
         <div className="sheet-body">{children}</div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

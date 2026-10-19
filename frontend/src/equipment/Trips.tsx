@@ -3,7 +3,23 @@ import { api } from '../api';
 import { groupByDay, groupByVehicle, lastAddedDay, num, plural, rub, sum } from '../lib/format';
 import { newTrip, rememberVehicle, TripForm, tripDraft, tripPayload, type TripDraft } from './forms';
 import type { Trip, Vehicle } from './types';
-import { Choice, DayGroup, DeleteButton, Empty, ErrorNote, errorText, haptic, MoreButton, PAGE, PaidCheck, PaidStatus, Row, Sheet } from './ui';
+import {
+  AddButton,
+  PageTitle,
+  Choice,
+  DayGroup,
+  DeleteButton,
+  Empty,
+  ErrorNote,
+  errorText,
+  haptic,
+  MoreButton,
+  PAGE,
+  PaidCheck,
+  PaidStatus,
+  Row,
+  Sheet,
+} from './ui';
 
 type Filter = number | 'all';
 
@@ -44,6 +60,7 @@ export function TripDays({
 }
 
 export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips: Trip[]; reload: () => Promise<void> }) {
+  const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [limit, setLimit] = useState(PAGE);
   const [editing, setEditing] = useState<Trip | null>(null);
@@ -87,18 +104,20 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
 
   return (
     <>
-      <section className="block">
-        <h2>Новая ходка</h2>
-        {vehicles.length ? (
+      <PageTitle number="02 / Ходки" title="История ходок" description="Рейсы, суммы и контроль оплаты" />
+      <AddButton onClick={() => setCreating(true)} disabled={!vehicles.length}>
+        Новая ходка
+      </AddButton>
+      {!vehicles.length && <Empty>Сначала добавьте машину во вкладке «Авто».</Empty>}
+      {creating && (
+        <Sheet title="Новая ходка" onClose={() => setCreating(false)}>
           <TripForm vehicles={vehicles} initial={newTrip(vehicles)} submitLabel="Добавить ходку" onSubmit={create} keepVehicleAndDate lastDate={lastDate} />
-        ) : (
-          <Empty>Сначала добавьте машину во вкладке «Авто».</Empty>
-        )}
-      </section>
+        </Sheet>
+      )}
 
       <section className="block">
         <div className="block-head">
-          <h2>История ходок</h2>
+          <h2>История</h2>
           <span className="block-total">
             {tripsLabel(filtered.length)} · {rub(sum(filtered, (t) => t.amount))}
           </span>

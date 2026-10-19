@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { groupBy, rub, sum, todayKey } from '../lib/format';
 import { ExpenseDays, recordsLabel } from './Expenses';
 import { TripDays, tripsLabel } from './Trips';
 import type { Analytics as Data, Trip, Vehicle } from './types';
-import { Empty, ErrorNote, errorText, Field, haptic, Row, Sheet } from './ui';
+import { CashflowChart, CategoryChart } from './Charts';
+import { PageTitle, Empty, ErrorNote, errorText, Field, haptic, Row, Sheet } from './ui';
 
 type Detail = { kind: 'revenue' | 'expenses'; group?: string } | { kind: 'vehicle'; id: number };
 
@@ -23,19 +24,32 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
   const [to, setTo] = useState(todayKey());
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState('');
+  const request = useRef(0);
+  const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<Detail | null>(null);
 
-  const load = async () => {
+  const load = async (keepDetail = false) => {
+    const ticket = ++request.current;
+    setLoading(true);
+    if (!keepDetail) setData(null);
+    setError('');
     const range = period === 'custom' ? `period=custom&from=${from}&to=${to}` : `period=${period}`;
     try {
-      setData(await api<Data>(`/equipment/analytics?${range}&vehicleId=${vehicleId}`));
+      const result = await api<Data>(`/equipment/analytics?${range}&vehicleId=${vehicleId}`);
+      if (ticket !== request.current) return;
+      setData(result);
       setError('');
     } catch (x) {
-      setError(errorText(x));
+      if (ticket === request.current) setError(errorText(x));
+    } finally {
+      if (ticket === request.current) setLoading(false);
     }
   };
   useEffect(() => {
     load();
+    return () => {
+      request.current++;
+    };
   }, [period, vehicleId, from, to]);
 
   const toggle = readOnly
@@ -44,7 +58,7 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
         try {
           await api(`/equipment/trips/${t.id}/paid`, { method: 'PATCH', body: JSON.stringify({ paid: !t.paid }) });
           haptic();
-          await load();
+          await load(true);
         } catch (x) {
           setError(errorText(x));
         }
@@ -53,6 +67,7 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
 
   return (
     <>
+      <PageTitle number="04 / Финансы" title="Аналитика" description="Оплаченные ходки, расходы и результат" />
       <label className="field">
         <span>Техника</span>
         <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
@@ -64,9 +79,9 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
           ))}
         </select>
       </label>
-      <div className="equipment-periods" role="tablist">
+      <div className="equipment-periods" role="group" aria-label="Период">
         {periods.map(({ value, label }) => (
-          <button role="tab" aria-selected={period === value} className={period === value ? 'selected' : ''} onClick={() => setPeriod(value)} key={value}>
+          <button aria-pressed={period === value} className={period === value ? 'selected' : ''} onClick={() => setPeriod(value)} key={value}>
             {label}
           </button>
         ))}
@@ -78,16 +93,26 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
         </div>
       )}
       <ErrorNote>{error}</ErrorNote>
-      {!data && !error && <p className="loading">Считаем…</p>}
+      {loading && (
+        <p className="loading" role="status">
+          Считаем результат…
+        </p>
+      )}
+      {error && (
+        <button className="secondary" onClick={() => load()}>
+          Повторить загрузку
+        </button>
+      )}
       {data && (
         <>
-          <section className="equipment-summary">
+          <CashflowChart data={data} />
+          <section className="equipment-summary" aria-label="Финансовые итоги">
             <button onClick={() => setDetail({ kind: 'revenue' })}>
-              <span>Выручка</span>
+              <span>Выручка ↗</span>
               <strong>{rub(data.revenue)}</strong>
             </button>
             <button onClick={() => setDetail({ kind: 'expenses' })}>
-              <span>Расходы</span>
+              <span>Расходы ↗</span>
               <strong>{rub(data.expenses)}</strong>
             </button>
             <div>
@@ -99,10 +124,17 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
               <strong>{rub(data.unpaid)}</strong>
             </div>
           </section>
-          <h2>По технике</h2>
+          <div className="block-head analytics-heading">
+            <h2>По технике</h2>
+            <span className="block-total">Прибыль, ₽</span>
+          </div>
+          <div className="chart-legend">
+            <span>Выручка</span>
+            <span>Расходы</span>
+          </div>
           <div className="equipment-analytics-list">
             {data.byVehicle.map((x) => (
-              <article key={x.vehicleId} onClick={() => setDetail({ kind: 'vehicle', id: x.vehicleId })}>
+              <button type="button" className="vehicle-result" key={x.vehicleId} onClick={() => setDetail({ kind: 'vehicle', id: x.vehicleId })}>
                 <header>
                   <div>
                     <strong>{x.name}</strong>
@@ -113,20 +145,21 @@ export function Analytics({ vehicles, readOnly = false }: { vehicles: Vehicle[];
                   <b>{rub(x.profit)}</b>
                 </header>
                 <div className="equipment-bars">
-                  <i style={{ width: `${(x.revenue / max) * 100}%` }} />
+                  <i aria-hidden="true" style={{ width: `${(x.revenue / max) * 100}%` }} />
                   <i style={{ width: `${(x.expenses / max) * 100}%` }} />
                 </div>
                 <footer>
                   <span>Доход {rub(x.revenue)}</span>
                   <span>Расход {rub(x.expenses)}</span>
                 </footer>
-              </article>
+              </button>
             ))}
           </div>
-          {!data.byVehicle.length && <Empty>За этот период записей нет.</Empty>}
+          {!data.tripRows.length && !data.expenseRows.length && <Empty>За этот период записей нет. Попробуйте выбрать другой период.</Empty>}
+          <CategoryChart data={data} onSelect={(group) => setDetail({ kind: 'expenses', group })} />
         </>
       )}
-      {detail && data && <DetailSheet data={data} detail={detail} setDetail={setDetail} onToggle={toggle} />}
+      {detail && data && <DetailSheet data={data} detail={detail} setDetail={setDetail} onToggle={toggle} error={error} />}
     </>
   );
 }
@@ -136,11 +169,13 @@ function DetailSheet({
   detail,
   setDetail,
   onToggle,
+  error,
 }: {
   data: Data;
   detail: Detail;
   setDetail: (d: Detail | null) => void;
   onToggle?: (t: Trip) => void;
+  error: string;
 }) {
   const close = () => setDetail(null);
 
@@ -150,6 +185,7 @@ function DetailSheet({
     const expenses = data.expenseRows.filter((x) => x.vehicleId === detail.id);
     return (
       <Sheet title={vehicle?.name ?? 'Машина'} onClose={close}>
+        <ErrorNote>{error}</ErrorNote>
         <h4 className="sheet-section">
           Ходки <span>{rub(sum(trips, (t) => t.amount))}</span>
         </h4>
@@ -173,6 +209,7 @@ function DetailSheet({
     if (group)
       return (
         <Sheet title={group.name} onClose={close} onBack={() => setDetail({ kind: 'revenue' })}>
+          <ErrorNote>{error}</ErrorNote>
           <p className="sheet-summary">
             Получено {rub(group.total)}
             {group.total !== sum(group.rows, (t) => t.amount) && ` · не отдали ${rub(sum(group.rows, (t) => t.amount) - group.total)}`}
@@ -182,6 +219,7 @@ function DetailSheet({
       );
     return (
       <Sheet title="Выручка по направлениям" onClose={close}>
+        <ErrorNote>{error}</ErrorNote>
         <p className="sheet-summary">
           Получено {rub(data.revenue)} · не отдали {rub(data.unpaid)}
         </p>

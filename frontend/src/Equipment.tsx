@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Truck, Route, Fuel, ChartNoAxesColumn } from 'lucide-react';
 import { api } from './api';
 import { Analytics } from './equipment/Analytics';
 import { Expenses } from './equipment/Expenses';
@@ -9,6 +10,7 @@ import { Vehicles } from './equipment/Vehicles';
 
 type Tab = 'trips' | 'expenses' | 'analytics' | 'vehicles';
 // «Авто» первой — как привык владелец; открывается при этом вкладка «Ходки».
+const tabIcons = { vehicles: Truck, trips: Route, expenses: Fuel, analytics: ChartNoAxesColumn };
 const tabs: [Tab, string][] = [
   ['vehicles', 'Авто'],
   ['trips', 'Ходки'],
@@ -50,11 +52,10 @@ export function Equipment({ readOnly }: { readOnly: boolean }) {
   if (readOnly) return <Analytics vehicles={vehicles} readOnly />;
   return (
     <>
-      <nav className="equipment-tabs" role="tablist">
+      <nav className="equipment-tabs" aria-label="Разделы">
         {tabs.map(([key, label]) => (
           <button
-            role="tab"
-            aria-selected={tab === key}
+            aria-pressed={tab === key}
             className={tab === key ? 'selected' : ''}
             onClick={() => {
               setTab(key);
@@ -62,6 +63,10 @@ export function Equipment({ readOnly }: { readOnly: boolean }) {
             }}
             key={key}
           >
+            {(() => {
+              const Icon = tabIcons[key];
+              return <Icon aria-hidden="true" />;
+            })()}
             {label}
           </button>
         ))}

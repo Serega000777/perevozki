@@ -25,22 +25,26 @@ export function rememberVehicle(id: number) {
 }
 
 function useSubmit<T>(draft: T, onSubmit: (draft: T) => Promise<void>, after?: () => void) {
+  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
+    setSaved(false);
     setError('');
     try {
       await onSubmit(draft);
       after?.();
+      setSaved(true);
     } catch (x) {
       setError(errorText(x));
     } finally {
       setBusy(false);
     }
   };
-  return { busy, error, submit };
+  return { busy, error, submit, saved };
 }
 
 export type TripDraft = { vehicleId: number | null; date: string; destination: string; amount: string; mileage: string; comment: string; paid: boolean };
@@ -83,7 +87,7 @@ export function TripForm({
   const [d, setD] = useState(initial);
   const set = <K extends keyof TripDraft>(key: K, value: TripDraft[K]) => setD((x) => ({ ...x, [key]: value }));
   // После добавления обычно вносят следующую ходку той же машины за тот же день.
-  const { busy, error, submit } = useSubmit(
+  const { busy, error, submit, saved } = useSubmit(
     d,
     onSubmit,
     keepVehicleAndDate ? () => setD((x) => ({ ...newTrip(vehicles), vehicleId: x.vehicleId, date: x.date })) : undefined,
@@ -98,14 +102,19 @@ export function TripForm({
       <DateChips value={d.date} onChange={(v) => set('date', v)} last={lastDate} />
       <Field label="Куда ездил" placeholder="Карьер, объект, адрес" value={d.destination} onChange={(e) => set('destination', e.target.value)} required />
       <div className="pair">
-        <Field label="Пробег, км" inputMode="decimal" placeholder="—" value={d.mileage} onChange={(e) => set('mileage', e.target.value)} />
-        <Field label="Комментарий" placeholder="—" value={d.comment} onChange={(e) => set('comment', e.target.value)} />
+        <Field label="Пробег, км · необяз." inputMode="decimal" placeholder="—" value={d.mileage} onChange={(e) => set('mileage', e.target.value)} />
+        <Field label="Комментарий · необяз." placeholder="—" value={d.comment} onChange={(e) => set('comment', e.target.value)} />
       </div>
       <label className="switch">
         <input type="checkbox" checked={d.paid} onChange={(e) => set('paid', e.target.checked)} />
         <span>Деньги за ходку получены</span>
       </label>
       <ErrorNote>{error}</ErrorNote>
+      {saved && (
+        <p className="success" role="status">
+          Сохранено. Можно добавить следующую запись.
+        </p>
+      )}
       <button className="primary" disabled={busy || d.vehicleId == null}>
         {busy ? 'Сохраняем…' : submitLabel}
       </button>
@@ -150,7 +159,7 @@ export function ExpenseForm({
 }) {
   const [d, setD] = useState(initial);
   const set = <K extends keyof ExpenseDraft>(key: K, value: ExpenseDraft[K]) => setD((x) => ({ ...x, [key]: value }));
-  const { busy, error, submit } = useSubmit(d, onSubmit, keepVehicleAndDate ? () => setD((x) => ({ ...x, amount: '', comment: '' })) : undefined);
+  const { busy, error, submit, saved } = useSubmit(d, onSubmit, keepVehicleAndDate ? () => setD((x) => ({ ...x, amount: '', comment: '' })) : undefined);
   return (
     <form className="form" onSubmit={submit}>
       <Choice label="Машина" options={vehicles.map((v) => ({ value: v.id, label: v.name }))} value={d.vehicleId} onChange={(v) => set('vehicleId', v)} />
@@ -160,8 +169,13 @@ export function ExpenseForm({
         <Field label="Сумма, ₽" inputMode="decimal" placeholder="0" value={d.amount} onChange={(e) => set('amount', e.target.value)} required />
       </div>
       <DateChips value={d.date} onChange={(v) => set('date', v)} last={lastDate} />
-      <Field label="Комментарий" placeholder="Кому, за что" value={d.comment} onChange={(e) => set('comment', e.target.value)} />
+      <Field label="Комментарий · необяз." placeholder="Кому, за что" value={d.comment} onChange={(e) => set('comment', e.target.value)} />
       <ErrorNote>{error}</ErrorNote>
+      {saved && (
+        <p className="success" role="status">
+          Сохранено. Можно добавить следующую запись.
+        </p>
+      )}
       <button className="primary" disabled={busy || d.vehicleId == null || d.categoryId == null}>
         {busy ? 'Сохраняем…' : submitLabel}
       </button>
@@ -183,7 +197,7 @@ export function VehicleForm({
   resetAfter?: boolean;
 }) {
   const [d, setD] = useState(initial);
-  const { busy, error, submit } = useSubmit(d, onSubmit, resetAfter ? () => setD({ name: '', note: '' }) : undefined);
+  const { busy, error, submit, saved } = useSubmit(d, onSubmit, resetAfter ? () => setD({ name: '', note: '' }) : undefined);
   return (
     <form className="form" onSubmit={submit}>
       <Field
@@ -196,6 +210,11 @@ export function VehicleForm({
       />
       <Field label="Госномер или описание" placeholder="Необязательно" value={d.note} onChange={(e) => setD({ ...d, note: e.target.value })} maxLength={250} />
       <ErrorNote>{error}</ErrorNote>
+      {saved && (
+        <p className="success" role="status">
+          Сохранено. Можно добавить следующую запись.
+        </p>
+      )}
       <button className="primary" disabled={busy}>
         {busy ? 'Сохраняем…' : submitLabel}
       </button>
