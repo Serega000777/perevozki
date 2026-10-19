@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import { Equipment } from './Equipment';
-
-type Me = { name: string; role: 'owner' | 'viewer' };
+import { PageHeader } from './brand';
+import { Equipment, type Me } from './Equipment';
 
 // Вне Telegram подписи initData нет — вместо ошибки объясняем, где открыть приложение.
 function OpenInTelegram() {
   return (
-    <section className="notice">
+    <section className="card notice">
       <h2>Откройте через Telegram</h2>
       <p>Перевозки работают внутри Telegram: так приложение узнаёт, кто вы, без логинов и паролей.</p>
       <a className="primary" href={import.meta.env.VITE_BOT_URL}>
@@ -24,22 +23,21 @@ export default function App() {
   useEffect(() => {
     api<Me>('/auth/me').then(setMe, (e: Error) => setError(e.message));
   }, []);
+  if (me)
+    return (
+      <main>
+        <Equipment me={me} />
+      </main>
+    );
   return (
     <main>
-      <header>
-        <div>
-          <span className="eyebrow">{me ? `${me.name}${me.role === 'owner' ? '' : ' · просмотр'}` : 'Учёт техники'}</span>
-          <h1>Перевозки</h1>
-        </div>
-      </header>
+      <PageHeader subtitle="Ваш автопарк, ходки, расходы и аналитика в одном месте" />
       {error && !window.Telegram?.WebApp.initData ? (
         <OpenInTelegram />
       ) : error ? (
         <p className="error" role="alert">
           {error}
         </p>
-      ) : me ? (
-        <Equipment readOnly={me.role !== 'owner'} />
       ) : (
         <p className="loading">Загружаем…</p>
       )}

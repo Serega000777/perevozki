@@ -22,6 +22,8 @@ export type Expense = {
   comment?: string | null;
 };
 export type Analytics = {
+  from: string | null;
+  to: string;
   revenue: number;
   expenses: number;
   profit: number;

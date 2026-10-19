@@ -1,10 +1,15 @@
 import { useState } from 'react';
+import { ChevronRight, Coins, Route, Truck } from 'lucide-react';
 import { api } from '../api';
+import { TruckArt } from '../brand';
+import { plural, rub, sum } from '../lib/format';
 import { VehicleForm, type VehicleDraft } from './forms';
 import { recordsLabel } from './Expenses';
 import { tripsLabel } from './Trips';
 import type { Expense, Trip, Vehicle } from './types';
-import { DeleteButton, Empty, ErrorNote, errorText, haptic, Row, Sheet } from './ui';
+import { Card, DeleteButton, Empty, ErrorNote, errorText, haptic, IconTile, SectionHead, Sheet, Stats } from './ui';
+
+const vehiclesLabel = (n: number) => plural(n, ['машина', 'машины', 'машин']);
 
 export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehicle[]; trips: Trip[]; expenses: Expense[]; reload: () => Promise<void> }) {
   const [editing, setEditing] = useState<Vehicle | null>(null);
@@ -38,30 +43,50 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
 
   return (
     <>
-      <section className="block">
-        <h2>Новая машина</h2>
+      <Stats
+        items={[
+          { icon: <Truck />, value: vehicles.length, unit: vehiclesLabel(vehicles.length), sub: 'в автопарке' },
+          { icon: <Route />, value: trips.length, unit: plural(trips.length, ['ходка', 'ходки', 'ходок']), sub: 'всего' },
+          { icon: <Coins />, value: rub(sum(expenses, (x) => x.amount)), sub: 'расходы всего' },
+        ]}
+      />
+
+      <Card
+        icon={
+          <IconTile plus>
+            <Truck />
+          </IconTile>
+        }
+        title="Новая машина"
+        aside={<span className="card-hint">Добавьте машину, чтобы учитывать ходки и расходы</span>}
+      >
         <VehicleForm initial={{ name: '', note: '' }} submitLabel="Добавить машину" onSubmit={create} resetAfter />
-      </section>
-      <section className="block">
-        <h2>Мои машины</h2>
-        {!vehicles.length && <Empty>Машин пока нет.</Empty>}
-        {!!vehicles.length && (
-          <div className="ledger">
-            {vehicles.map((v) => {
-              const used = usage(v);
-              return (
-                <Row
-                  key={v.id}
-                  title={v.name}
-                  meta={v.note || 'без описания'}
-                  side={<span className="row-note">{tripsLabel(used.trips)}</span>}
-                  onOpen={() => setEditing(v)}
-                />
-              );
-            })}
-          </div>
-        )}
-      </section>
+      </Card>
+
+      <SectionHead title="Мои машины" aside={`${vehicles.length} ${vehiclesLabel(vehicles.length)}`} />
+      {!vehicles.length && <Empty>Машин пока нет.</Empty>}
+      <div className="vehicle-list">
+        {vehicles.map((v, i) => {
+          const used = usage(v);
+          return (
+            <button type="button" className="vehicle-card" key={v.id} onClick={() => setEditing(v)}>
+              <span className="vehicle-photo">
+                <TruckArt index={i} />
+              </span>
+              <span className="vehicle-info">
+                <strong>{v.name}</strong>
+                <small>{v.note || 'без описания'}</small>
+                <span className="pill active">Активна</span>
+              </span>
+              <span className="vehicle-count">
+                <strong>{used.trips}</strong> {plural(used.trips, ['ходка', 'ходки', 'ходок'])}
+              </span>
+              <ChevronRight className="chevron" aria-hidden />
+            </button>
+          );
+        })}
+      </div>
+
       {editing && (
         <Sheet title={editing.name} onClose={close}>
           <VehicleForm initial={{ name: editing.name, note: editing.note ?? '' }} submitLabel="Сохранить" onSubmit={save} />

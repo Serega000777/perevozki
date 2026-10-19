@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
+import { IdCard, Truck } from 'lucide-react';
 import { toNumberInput, todayKey } from '../lib/format';
 import type { Category, Expense, Trip, Vehicle } from './types';
-import { Choice, DateChips, ErrorNote, errorText, Field } from './ui';
+import { Choice, DateChips, ErrorNote, errorText, Field, PrimaryButton } from './ui';
 
 const LAST_VEHICLE = 'perevozki:lastVehicle';
 
@@ -106,9 +107,9 @@ export function TripForm({
         <span>Деньги за ходку получены</span>
       </label>
       <ErrorNote>{error}</ErrorNote>
-      <button className="primary" disabled={busy || d.vehicleId == null}>
+      <PrimaryButton plus={keepVehicleAndDate} disabled={busy || d.vehicleId == null}>
         {busy ? 'Сохраняем…' : submitLabel}
-      </button>
+      </PrimaryButton>
     </form>
   );
 }
@@ -154,7 +155,13 @@ export function ExpenseForm({
   return (
     <form className="form" onSubmit={submit}>
       <Choice label="Машина" options={vehicles.map((v) => ({ value: v.id, label: v.name }))} value={d.vehicleId} onChange={(v) => set('vehicleId', v)} />
-      <Choice label="Категория" options={categories.map((c) => ({ value: c.id, label: c.name }))} value={d.categoryId} onChange={(v) => set('categoryId', v)} />
+      <Choice
+        label="Категория"
+        shape="pill"
+        options={categories.map((c) => ({ value: c.id, label: c.name }))}
+        value={d.categoryId}
+        onChange={(v) => set('categoryId', v)}
+      />
       <div className="pair">
         <Field label="Дата" type="date" value={d.date} onChange={(e) => set('date', e.target.value)} required />
         <Field label="Сумма, ₽" inputMode="decimal" placeholder="0" value={d.amount} onChange={(e) => set('amount', e.target.value)} required />
@@ -162,9 +169,9 @@ export function ExpenseForm({
       <DateChips value={d.date} onChange={(v) => set('date', v)} last={lastDate} />
       <Field label="Комментарий" placeholder="Кому, за что" value={d.comment} onChange={(e) => set('comment', e.target.value)} />
       <ErrorNote>{error}</ErrorNote>
-      <button className="primary" disabled={busy || d.vehicleId == null || d.categoryId == null}>
+      <PrimaryButton plus={keepVehicleAndDate} disabled={busy || d.vehicleId == null || d.categoryId == null}>
         {busy ? 'Сохраняем…' : submitLabel}
-      </button>
+      </PrimaryButton>
     </form>
   );
 }
@@ -188,17 +195,25 @@ export function VehicleForm({
     <form className="form" onSubmit={submit}>
       <Field
         label="Название"
+        icon={<Truck />}
         placeholder="Например, КамАЗ 162"
         value={d.name}
         onChange={(e) => setD({ ...d, name: e.target.value })}
         required
         maxLength={100}
       />
-      <Field label="Госномер или описание" placeholder="Необязательно" value={d.note} onChange={(e) => setD({ ...d, note: e.target.value })} maxLength={250} />
+      <Field
+        label="Госномер или описание"
+        icon={<IdCard />}
+        placeholder="Необязательно"
+        value={d.note}
+        onChange={(e) => setD({ ...d, note: e.target.value })}
+        maxLength={250}
+      />
       <ErrorNote>{error}</ErrorNote>
-      <button className="primary" disabled={busy}>
+      <PrimaryButton plus={resetAfter} disabled={busy}>
         {busy ? 'Сохраняем…' : submitLabel}
-      </button>
+      </PrimaryButton>
     </form>
   );
 }
