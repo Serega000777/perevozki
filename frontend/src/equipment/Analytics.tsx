@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, ChartNoAxesColumn, ChartPie, ChevronDown, Coins, Percent, Trophy, Truck, Wallet } from 'lucide-react';
+import { CalendarDays, ChartNoAxesColumn, ChartPie, ChevronDown, Coins, Percent, TrendingUp, Trophy, Truck, Wallet } from 'lucide-react';
 import { api } from '../api';
-import { groupBy, rub, sum, todayKey } from '../lib/format';
-import { bestMonth, monthTitle, revenueSeries } from '../lib/series';
+import { groupBy, rangeTitle, rub, sum, todayKey } from '../lib/format';
+import { bestMonth, monthTitle, periodDays, revenueSeries } from '../lib/series';
+import { RangeCalendar } from './calendar';
 import { Donut, DONUT_COLORS, LineChart } from './charts';
 import { ExpenseDays, recordsLabel } from './Expenses';
 import { TripDays, tripsLabel } from './Trips';
 import type { Analytics as Data, Trip, Vehicle } from './types';
-import { Card, Empty, ErrorNote, errorText, Field, haptic, IconTile, Row, Sheet, Stats } from './ui';
+import { Card, Empty, ErrorNote, errorText, haptic, IconTile, Row, Sheet, Stats } from './ui';
 
 type Detail = { kind: 'revenue' | 'expenses'; group?: string } | { kind: 'vehicle'; id: number };
 
@@ -28,6 +29,7 @@ export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicle
   const [allTime, setAllTime] = useState<Data | null>(null);
   const [error, setError] = useState('');
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const load = async () => {
     const range = period === 'custom' ? `period=custom&from=${from}&to=${to}` : `period=${period}`;
@@ -59,14 +61,18 @@ export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicle
         }
       };
 
+  const range = data?.from ? periodDays(data.from, data.to) : null;
+  const title = period === 'week' && range && range[1] < todayKey() ? 'Обзор за прошлую неделю' : periods.find((p) => p.value === period)!.title;
+
   return (
     <>
+      {/* За всё время: прибыль — с неоплаченными ходками, баланс — только полученные деньги. */}
       {allTime && (
         <Stats
           items={[
             { icon: <ChartNoAxesColumn />, value: rub(allTime.revenue), sub: 'выручка' },
-            { icon: <Coins />, value: rub(allTime.expenses), sub: 'расходы' },
-            { icon: <Wallet />, value: rub(allTime.profit), sub: 'чистыми' },
+            { icon: <TrendingUp />, value: rub(allTime.profit), sub: 'прибыль' },
+            { icon: <Wallet />, value: rub(allTime.balance), sub: 'баланс' },
           ]}
         />
       )}
@@ -77,7 +83,7 @@ export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicle
             <ChartNoAxesColumn />
           </IconTile>
         }
-        title={periods.find((p) => p.value === period)!.title}
+        title={title}
       >
         <div className="overview-controls">
           <label className="select">
@@ -99,7 +105,7 @@ export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicle
                 aria-label={label}
                 title={label}
                 className={['chip', value === 'custom' && 'icon', period === value && 'on'].filter(Boolean).join(' ')}
-                onClick={() => setPeriod(value)}
+                onClick={() => (value === 'custom' ? setPicking(true) : setPeriod(value))}
                 key={value}
               >
                 {/* «Свои даты» — значком календаря, чтобы периоды помещались в один ряд */}
@@ -108,12 +114,7 @@ export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicle
             ))}
           </div>
         </div>
-        {period === 'custom' && (
-          <div className="pair custom-period">
-            <Field label="С даты" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            <Field label="По дату" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
-        )}
+        {range && <p className="period-range">{rangeTitle(...range)}</p>}
         <ErrorNote>{error}</ErrorNote>
         {!data ? !error && <p className="loading">Считаем…</p> : <Overview data={data} period={period} />}
       </Card>
@@ -150,26 +151,45 @@ export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicle
         </>
       )}
       {detail && data && <DetailSheet data={data} detail={detail} setDetail={setDetail} onToggle={toggle} />}
+      {picking && (
+        <RangeCalendar
+          from={period === 'custom' ? from : undefined}
+          to={period === 'custom' ? to : undefined}
+          onClose={() => setPicking(false)}
+          onApply={(start, end) => {
+            setFrom(start);
+            setTo(end);
+            setPeriod('custom');
+            setPicking(false);
+          }}
+        />
+      )}
     </>
   );
 }
 
 function Overview({ data, period }: { data: Data; period: string }) {
   const points = revenueSeries(data.tripRows, period, data.from, data.to);
-  const tripsTotal = sum(data.tripRows, (t) => t.amount);
+  const days = data.from ? periodDays(data.from, data.to) : null;
   const margin = data.revenue > 0 ? Math.round((data.profit / data.revenue) * 100) : null;
   return (
     <>
-      {points.length > 1 ? (
+      {points.length > 1 && data.trips ? (
         <>
           <p className="chart-caption">Выручка, ₽</p>
           <LineChart points={points} />
         </>
       ) : (
-        <p className="chart-empty">{period === 'day' ? 'За один день график не строится — итоги дня ниже.' : 'Мало данных для графика.'}</p>
+        <p className="chart-empty">
+          {days && days[0] === days[1]
+            ? 'За один день график не строится — итоги дня ниже.'
+            : data.trips
+              ? 'Мало данных для графика.'
+              : 'Ходок за этот период нет.'}
+        </p>
       )}
       <div className="metrics">
-        <Metric icon={<ChartNoAxesColumn />} label="Средний рейс" value={data.trips ? rub(Math.round(tripsTotal / data.trips)) : '—'} />
+        <Metric icon={<ChartNoAxesColumn />} label="Средний рейс" value={data.trips ? rub(Math.round(data.revenue / data.trips)) : '—'} />
         <Metric icon={<Coins />} label="Расход на рейс" value={data.trips ? rub(Math.round(data.expenses / data.trips)) : '—'} />
         <Metric icon={<Percent />} label="Маржа" value={margin == null ? '—' : `${margin}%`} />
       </div>
@@ -398,15 +418,16 @@ function DetailSheet({
     const groups = groupBy(
       data.tripRows,
       (t) => t.destination.trim(),
-      (t) => (t.paid ? Number(t.amount) : 0),
+      (t) => Number(t.amount),
     );
+    const unpaidOf = (trips: Trip[]) => sum(trips, (t) => (t.paid ? 0 : t.amount));
     const group = groups.find((g) => g.name === detail.group);
     if (group)
       return (
         <Sheet title={group.name} onClose={close} onBack={() => setDetail({ kind: 'revenue' })}>
           <p className="sheet-summary">
-            Получено {rub(group.total)}
-            {group.total !== sum(group.rows, (t) => t.amount) && ` · не отдали ${rub(sum(group.rows, (t) => t.amount) - group.total)}`}
+            Всего {rub(group.total)}
+            {unpaidOf(group.rows) > 0 && ` · не отдали ${rub(unpaidOf(group.rows))}`}
           </p>
           <TripDays trips={group.rows} title={(t) => t.vehicle.name} onToggle={onToggle} />
         </Sheet>
@@ -414,12 +435,12 @@ function DetailSheet({
     return (
       <Sheet title="Выручка по направлениям" onClose={close}>
         <p className="sheet-summary">
-          Получено {rub(data.revenue)} · не отдали {rub(data.unpaid)}
+          Всего {rub(data.revenue)} · получено {rub(data.revenue - data.unpaid)} · не отдали {rub(data.unpaid)}
         </p>
         {groups.length ? (
           <div className="ledger">
             {groups.map((g) => {
-              const unpaid = sum(g.rows, (t) => t.amount) - g.total;
+              const unpaid = unpaidOf(g.rows);
               return (
                 <Row
                   key={g.name}

@@ -3,13 +3,14 @@ import type { PrismaClient } from '@prisma/client';
 import {
   calendarDate,
   checkbox,
+  customMoscowPeriod,
   InputError,
+  moscowPeriod,
   nonNegativeNumber,
   optionalText,
   positiveInteger,
   positiveNumber,
   requiredText,
-  startOfMoscowPeriod,
 } from './validation.js';
 
 const n = (value: unknown) => Number(value || 0);
@@ -114,12 +115,7 @@ export function equipmentRouter(prisma: PrismaClient) {
 
   router.get('/analytics', async (req, res) => {
     const vehicleId = req.query.vehicleId && req.query.vehicleId !== 'all' ? positiveInteger(req.query.vehicleId, 'Техника') : undefined;
-    let from = startOfMoscowPeriod(req.query.period),
-      to: Date | undefined;
-    if (req.query.period === 'custom') {
-      from = calendarDate(req.query.from);
-      to = new Date(calendarDate(req.query.to).getTime() + 24 * 60 * 60 * 1000);
-    }
+    const { from, to } = req.query.period === 'custom' ? customMoscowPeriod(req.query.from, req.query.to) : moscowPeriod(req.query.period);
     // period=all — «Всё время»: без ограничения по дате.
     const allTime = req.query.period === 'all';
     const where = { ...(vehicleId ? { vehicleId } : {}), ...(allTime ? {} : { date: { gte: from, ...(to ? { lt: to } : {}) } }) };
@@ -127,7 +123,9 @@ export function equipmentRouter(prisma: PrismaClient) {
       prisma.equipmentTrip.findMany({ where, include: { vehicle: true }, orderBy: { date: 'asc' } }),
       prisma.equipmentExpense.findMany({ where, include: { vehicle: true, category: true }, orderBy: { date: 'asc' } }),
     ]);
-    const revenue = trips.filter((x) => x.paid).reduce((sum, x) => sum + n(x.amount), 0);
+    // Выручка и прибыль — по всем ходкам сразу; баланс — только полученные деньги:
+    // неоплаченная ходка попадает в него, когда её отметят «Оплачено».
+    const revenue = trips.reduce((sum, x) => sum + n(x.amount), 0);
     const unpaid = trips.filter((x) => !x.paid).reduce((sum, x) => sum + n(x.amount), 0);
     const costs = expenses.reduce((sum, x) => sum + n(x.amount), 0);
     const byVehicle = Object.values(
@@ -135,8 +133,8 @@ export function equipmentRouter(prisma: PrismaClient) {
         const item = all[row.vehicleId] ?? { vehicleId: row.vehicleId, name: row.vehicle.name, revenue: 0, unpaid: 0, expenses: 0, trips: 0 };
         if ('paid' in row) {
           item.trips++;
-          if (row.paid) item.revenue += n(row.amount);
-          else item.unpaid += n(row.amount);
+          item.revenue += n(row.amount);
+          if (!row.paid) item.unpaid += n(row.amount);
         } else item.expenses += n(row.amount);
         all[row.vehicleId] = item;
         return all;
@@ -148,6 +146,7 @@ export function equipmentRouter(prisma: PrismaClient) {
       revenue,
       expenses: costs,
       profit: revenue - costs,
+      balance: revenue - unpaid - costs,
       unpaid,
       trips: trips.length,
       byVehicle,

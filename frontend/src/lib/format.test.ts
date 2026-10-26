@@ -1,6 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dayTitle, lastAddedDay, groupBy, groupByDay, groupByVehicle, plural, rub, shiftDay, shortDate, toNumberInput, todayKey } from './format';
+import {
+  dayTitle,
+  lastAddedDay,
+  groupBy,
+  groupByDay,
+  groupByVehicle,
+  monthCells,
+  plural,
+  rangeTitle,
+  rub,
+  shiftDay,
+  shiftMonth,
+  shortDate,
+  toNumberInput,
+  todayKey,
+} from './format';
 
 const nbsp = (s: string) => s.replace(/[  ]/g, ' ');
 
@@ -27,6 +42,23 @@ test('вчера, позавчера и короткая дата', () => {
   assert.equal(shiftDay('2026-03-01', -2), '2026-02-27');
   assert.equal(shiftDay('2026-01-01', -1), '2025-12-31');
   assert.equal(shortDate('2026-10-11'), '11.10');
+});
+
+test('подпись периода', () => {
+  const today = '2026-10-26';
+  assert.equal(rangeTitle('2026-10-19', '2026-10-25', today), '19–25 октября');
+  assert.equal(rangeTitle('2026-10-26', '2026-10-26', today), '26 октября');
+  assert.equal(rangeTitle('2026-09-28', '2026-10-04', today), '28 сентября – 4 октября');
+  assert.equal(rangeTitle('2025-12-29', '2026-01-04', today), '29 декабря 2025 г. – 4 января 2026 г.');
+  assert.equal(rangeTitle('2025-03-01', '2025-03-15', today), '1–15 марта 2025 г.');
+});
+
+test('календарь месяца начинается с понедельника', () => {
+  const october = monthCells('2026-10'); // 1 октября 2026 — четверг
+  assert.deepEqual(october.slice(0, 4), [null, null, null, '2026-10-01']);
+  assert.equal(october.at(-1), '2026-10-31');
+  assert.equal(monthCells('2026-02').filter(Boolean).length, 28);
+  assert.deepEqual([shiftMonth('2026-01', -1), shiftMonth('2026-12', 1)], ['2025-12', '2027-01']);
 });
 
 test('ввод чисел с телефона: запятая и пробелы', () => {

@@ -26,6 +26,27 @@ export function dayTitle(key: string, today = todayKey()) {
   return key === today ? `Сегодня, ${title}` : `${title}, ${weekday}`;
 }
 
+// «19–25 октября», «28 сентября – 4 октября», год — только если он не текущий.
+export function rangeTitle(from: string, to: string, today = todayKey()) {
+  const date = (key: string, year: boolean) =>
+    new Date(`${key}T12:00:00Z`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', ...(year ? { year: 'numeric' } : {}), timeZone: 'UTC' });
+  const sameYear = from.slice(0, 4) === to.slice(0, 4);
+  const year = !sameYear || to.slice(0, 4) !== today.slice(0, 4);
+  if (from === to) return date(to, year);
+  if (from.slice(0, 7) === to.slice(0, 7)) return `${Number(from.slice(8))}–${date(to, year)}`;
+  return `${date(from, !sameYear)} – ${date(to, year)}`;
+}
+
+// Клетки календаря месяца «ГГГГ-ММ»: пустые до понедельника, затем ключи дней.
+export function monthCells(month: string) {
+  const first = `${month}-01`;
+  const lead = (new Date(`${first}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const days = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+  return [...Array<null>(lead).fill(null), ...Array.from({ length: days }, (_, i) => shiftDay(first, i))];
+}
+export const shiftMonth = (month: string, by: number) =>
+  new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1 + by, 1)).toISOString().slice(0, 7);
+
 // «12,5» и «12 000» с телефона → «12.5» и «12000» для сервера.
 export const toNumberInput = (value: FormDataEntryValue | null) =>
   String(value ?? '')

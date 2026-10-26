@@ -27,6 +27,7 @@ export type Analytics = {
   revenue: number;
   expenses: number;
   profit: number;
+  balance: number;
   unpaid: number;
   trips: number;
   byVehicle: { vehicleId: number; name: string; revenue: number; expenses: number; profit: number; unpaid: number; trips: number }[];
