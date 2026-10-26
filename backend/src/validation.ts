@@ -46,14 +46,30 @@ export function checkbox(value: unknown) {
   return value === true || value === 'true' || value === 'on';
 }
 
-const MOSCOW_OFFSET_MS = 3 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
+const MOSCOW_OFFSET_MS = 3 * HOUR;
+const atMoscowMidnight = (year: number, month: number, day: number) => new Date(Date.UTC(year, month, day) - MOSCOW_OFFSET_MS);
 
-export function startOfMoscowPeriod(period: unknown, now = new Date()) {
+// Границы периода по Москве; to — исключающая граница, если период уже закончился (иначе — «до сейчас»).
+// Неделя календарная, с понедельника; в понедельник и вторник в текущей почти нет записей,
+// поэтому показываем прошлую неделю целиком.
+export function moscowPeriod(period: unknown, now = new Date()): { from: Date; to?: Date } {
   const local = new Date(now.getTime() + MOSCOW_OFFSET_MS);
   const year = local.getUTCFullYear();
   const month = local.getUTCMonth();
   const day = local.getUTCDate();
-  const daysBack = period === 'week' ? 6 : 0;
-  const start = period === 'month' ? Date.UTC(year, month, 1) : Date.UTC(year, month, day - daysBack);
-  return new Date(start - MOSCOW_OFFSET_MS);
+  if (period === 'month') return { from: atMoscowMidnight(year, month, 1) };
+  if (period === 'week') {
+    const weekday = (local.getUTCDay() + 6) % 7;
+    const monday = day - weekday;
+    if (weekday < 2) return { from: atMoscowMidnight(year, month, monday - 7), to: atMoscowMidnight(year, month, monday) };
+    return { from: atMoscowMidnight(year, month, monday) };
+  }
+  return { from: atMoscowMidnight(year, month, day) };
+}
+
+// Свои даты: от полуночи первого дня до полуночи после последнего — так же, как у остальных периодов.
+export function customMoscowPeriod(from: unknown, to: unknown) {
+  const midnight = (value: unknown, days: number) => new Date(calendarDate(value).getTime() - 12 * HOUR - MOSCOW_OFFSET_MS + days * 24 * HOUR);
+  return { from: midnight(from, 0), to: midnight(to, 1) };
 }

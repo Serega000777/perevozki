@@ -145,19 +145,22 @@ test('полный сценарий: техника → ходки → расх�
   assert.ok((await call('GET', '/api/equipment/trips')).body.some((x: { id: number }) => x.id === paidTrip.body.id));
   assert.ok((await call('GET', '/api/equipment/expenses')).body.some((x: { id: number }) => x.id === expense.body.id));
 
-  // аналитика: выручка = оплаченные ходки, «не отдали» = неоплаченные
+  // аналитика: выручка и прибыль — все ходки, «не отдали» — неоплаченные, баланс — только полученное
   const month = await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`);
   assert.equal(month.status, 200);
-  const { revenue, expenses, profit, unpaid, trips, byVehicle } = month.body;
-  assert.deepEqual({ revenue, expenses, profit, unpaid, trips }, { revenue: 15000, expenses: 5000, profit: 10000, unpaid: 8000, trips: 2 });
-  assert.deepEqual(byVehicle, [{ vehicleId, name: `${tag} JCB`, revenue: 15000, unpaid: 8000, expenses: 5000, trips: 2, profit: 10000 }]);
+  const { revenue, expenses, profit, balance, unpaid, trips, byVehicle } = month.body;
+  assert.deepEqual(
+    { revenue, expenses, profit, balance, unpaid, trips },
+    { revenue: 23000, expenses: 5000, profit: 18000, balance: 10000, unpaid: 8000, trips: 2 },
+  );
+  assert.deepEqual(byVehicle, [{ vehicleId, name: `${tag} JCB`, revenue: 23000, unpaid: 8000, expenses: 5000, trips: 2, profit: 18000 }]);
   assert.equal(month.body.tripRows.length, 2);
   assert.equal(month.body.expenseRows.length, 1);
   const custom = await call('GET', `/api/equipment/analytics?period=custom&from=${today}&to=${today}&vehicleId=${vehicleId}`);
   assert.equal(custom.body.trips, 2);
   const oldTrip = await call('POST', '/api/equipment/trips', { vehicleId, date: '2020-01-15', destination: 'Давно', amount: 1000, paid: true });
   const allTime = await call('GET', `/api/equipment/analytics?period=all&vehicleId=${vehicleId}`);
-  assert.deepEqual([allTime.body.trips, allTime.body.revenue, allTime.body.from], [3, 16000, null]);
+  assert.deepEqual([allTime.body.trips, allTime.body.revenue, allTime.body.from], [3, 24000, null]);
   assert.equal((await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`)).body.trips, 2);
   assert.equal((await call('DELETE', `/api/equipment/trips/${oldTrip.body.id}`)).status, 200);
   const yesterday = moscowDay(-1);
@@ -166,7 +169,7 @@ test('полный сценарий: техника → ходки → расх�
 
   // зритель видит ту же статистику, но ничего не может изменить
   const viewerMonth = await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`, undefined, viewer);
-  assert.deepEqual([viewerMonth.body.revenue, viewerMonth.body.unpaid, viewerMonth.body.trips], [15000, 8000, 2]);
+  assert.deepEqual([viewerMonth.body.revenue, viewerMonth.body.unpaid, viewerMonth.body.trips], [23000, 8000, 2]);
   assert.equal((await call('PATCH', `/api/equipment/trips/${unpaidTrip.body.id}/paid`, { paid: true }, viewer)).status, 403);
   assert.equal((await call('PATCH', `/api/equipment/vehicles/${vehicleId}`, { name: 'взлом' }, viewer)).status, 403);
   assert.equal((await call('DELETE', `/api/equipment/expenses/${expense.body.id}`, undefined, viewer)).status, 403);
