@@ -55,7 +55,6 @@ M3 — Improvements:
 Развёрнуто: `https://perevozki.crm-cement.ru`, `/opt/perevozki` — см. [infra/README.md](infra/README.md).
 **Amola Finance на том же VPS не трогать** (AGENTS.md).
 
-- [ ] Выложить `4db037b` (календарь периода, календарная неделя, прибыль с неоплаченными и баланс): `ship-image.sh backend frontend` — ждёт команды владельца (backend и frontend нужны вместе: клиент ждёт поле `balance`)
 - [ ] Если Telegram покажет старую сборку — версионный путь в URL кнопки (`/app-<дата>`), как в Cement; nginx отдаёт SPA на любом пути
 
 ## Позже
