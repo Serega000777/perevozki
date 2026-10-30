@@ -1,4 +1,12 @@
-export type Vehicle = { id: number; name: string; note?: string | null };
+export type Vehicle = {
+  id: number;
+  name: string;
+  note?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  kind?: string | null;
+  photoAt?: string | null;
+};
 export type Category = { id: number; name: string };
 export type Trip = {
   id: number;

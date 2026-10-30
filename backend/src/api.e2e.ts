@@ -189,3 +189,32 @@ test('полный сценарий: техника → ходки → расх�
   assert.equal((await call('DELETE', `/api/equipment/vehicles/${vehicleId}`)).status, 200);
   assert.equal((await call('DELETE', `/api/equipment/vehicles/${vehicleId}`)).status, 404);
 });
+
+test('карточка машины: марка, модель, вид техники и фото', async () => {
+  const vehicle = await call('POST', '/api/equipment/vehicles', { name: `${tag} HOWO`, note: 'А123ВС', brand: 'HOWO', model: 'T5G', kind: 'mixer' });
+  assert.equal(vehicle.status, 201);
+  created.vehicles.push(vehicle.body.id);
+  assert.deepEqual([vehicle.body.brand, vehicle.body.model, vehicle.body.kind, vehicle.body.photoAt], ['HOWO', 'T5G', 'mixer', null]);
+
+  const url = `${base}/api/equipment/vehicles/${vehicle.body.id}/photo`;
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+  const put = (body: Buffer, type: string, from = headers) =>
+    fetch(url, { method: 'PUT', headers: { ...from, 'content-type': type }, body: new Uint8Array(body) });
+  assert.equal((await put(Buffer.from('не картинка'), 'image/jpeg')).status, 400);
+  assert.equal((await put(jpeg, 'image/jpeg', viewer)).status, 403);
+  assert.equal((await put(jpeg, 'image/jpeg')).status, 200);
+
+  const photo = await fetch(url, { headers });
+  assert.deepEqual([photo.status, photo.headers.get('content-type'), Buffer.from(await photo.arrayBuffer()).equals(jpeg)], [200, 'image/jpeg', true]);
+  assert.equal((await fetch(url, { headers: viewer })).status, 403);
+  const listed = (await call('GET', '/api/equipment/vehicles')).body.find((x: { id: number }) => x.id === vehicle.body.id);
+  assert.ok(listed.photoAt);
+
+  assert.equal((await call('DELETE', `/api/equipment/vehicles/${vehicle.body.id}/photo`)).body.photoAt, null);
+  assert.equal((await fetch(url, { headers })).status, 404);
+
+  // удаление машины удаляет и её фото
+  await put(jpeg, 'image/jpeg');
+  assert.equal((await call('DELETE', `/api/equipment/vehicles/${vehicle.body.id}`)).status, 200);
+  assert.equal(await prisma.equipmentVehiclePhoto.count({ where: { vehicleId: vehicle.body.id } }), 0);
+});
