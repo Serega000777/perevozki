@@ -15,7 +15,8 @@
   full `pg_restore --file=/dev/null`. Only then is the entire directory
   atomically renamed to `perevozki-<UTC timestamp>-<random suffix>`.
 - Single-writer `flock`; failure has a nonzero exit code and removes the staging
-  directory. Rotation runs **only after a verified successful export**.
+  directory. Abandoned staging directories older than 24 hours are cleaned
+  after acquiring the lock; rotation runs **only after a verified successful export**.
 - Local retention: `BACKUP_RETENTION_DAYS=14` (configurable, 1–3650); deletes
   only completed, specifically named backup directories older than this age.
   It never rotates `.incomplete-*`, unrelated paths, or offsite copies.
@@ -43,7 +44,8 @@ This starts a temporary, network-isolated PostgreSQL 16 **test Compose project**
 inserts fictitious vehicles and trips, runs the real backup script and checks:
 successful publication, SHA-256, archive decoding, full restore to a separate
 disposable PostgreSQL container, exact restored counts and sums, rejection of a
-tampered archive, clean failure when the source DB is absent, and retention.
+tampered or truncated/rechecksummed archive, clean failure when the source DB
+is absent (without retention), retention and old staging cleanup.
 Test project volumes and containers are removed afterward. **No production
 container, named volume, database, network, or VPS access is used.**
 

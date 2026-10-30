@@ -40,6 +40,11 @@ backup_dir=$(realpath -e -- "$backup_dir")
 exec 9>"$backup_dir/.backup.lock"
 flock -n 9 || fail 'another backup is in progress'
 
+# A SIGKILL/power loss can leave staging directories. After obtaining the
+# exclusive lock, remove only abandoned staging directories older than one day.
+find "$backup_dir" -mindepth 1 -maxdepth 1 -type d \
+  -name '.incomplete-*' -mmin +1440 -exec rm -r -- '{}' + || fail 'stale staging cleanup failed'
+
 partial_dir=''
 cleanup() {
   if [[ -n $partial_dir && -d $partial_dir ]]; then

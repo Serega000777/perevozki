@@ -45,17 +45,28 @@ if COMPOSE_PROJECT_NAME="$project" COMPOSE_FILE="$fixture" \
   exit 1
 fi
 
+# Even a recomputed checksum cannot make a truncated archive pass pg_restore.
+mkdir -m 700 "$test_root/truncated"
+cp "${sets[0]}/database.dump" "$test_root/truncated/database.dump"
+truncate -s 64 "$test_root/truncated/database.dump"
+(cd "$test_root/truncated" && sha256sum database.dump > database.dump.sha256)
+if COMPOSE_PROJECT_NAME="$project" COMPOSE_FILE="$fixture" \
+  bash "$repo_root/scripts/verify-postgres-backup.sh" "$test_root/truncated"; then
+  echo 'Truncated, rechecksummed backup was accepted' >&2
+  exit 1
+fi
+
 # A failed dump must not publish a snapshot, even when a partial file exists.
 mkdir -m 700 "$test_root/failed"
+mkdir -m 700 "$test_root/failed/perevozki-20200101T000000Z-old"
+touch -d '20 days ago' "$test_root/failed/perevozki-20200101T000000Z-old"
 if COMPOSE_PROJECT_NAME="$project-missing" COMPOSE_FILE="$fixture" \
   BACKUP_DIR="$test_root/failed" bash "$repo_root/scripts/backup-postgres.sh"; then
   echo 'Expected pg_dump failure' >&2
   exit 1
 fi
-[[ -z $(find "$test_root/failed" -mindepth 1 -maxdepth 1 -type d -name 'perevozki-*' -print -quit) ]] || {
-  echo 'Failed pg_dump published a snapshot' >&2
-  exit 1
-}
+[[ -d "$test_root/failed/perevozki-20200101T000000Z-old" ]] || { echo 'Failed pg_dump unexpectedly ran retention' >&2; exit 1; }
+[[ $(find "$test_root/failed" -mindepth 1 -maxdepth 1 -type d -name 'perevozki-*' | wc -l) -eq 1 ]] || { echo 'Failed pg_dump published a snapshot' >&2; exit 1; }
 
 # Rotation is limited to completed backup sets older than the configured age.
 mkdir -m 700 "$backup_dir/perevozki-20200101T000000Z-old"
@@ -64,5 +75,12 @@ COMPOSE_PROJECT_NAME="$project" COMPOSE_FILE="$fixture" \
   BACKUP_DIR="$backup_dir" BACKUP_RETENTION_DAYS=14 \
   bash "$repo_root/scripts/backup-postgres.sh"
 [[ ! -e "$backup_dir/perevozki-20200101T000000Z-old" ]] || { echo 'Retention did not remove expired set' >&2; exit 1; }
+
+mkdir -m 700 "$backup_dir/.incomplete-old"
+touch -d '2 days ago' "$backup_dir/.incomplete-old"
+COMPOSE_PROJECT_NAME="$project" COMPOSE_FILE="$fixture" \
+  BACKUP_DIR="$backup_dir" BACKUP_RETENTION_DAYS=14 \
+  bash "$repo_root/scripts/backup-postgres.sh"
+[[ ! -e "$backup_dir/.incomplete-old" ]] || { echo 'Stale staging was not removed' >&2; exit 1; }
 
 echo 'Backup, corruption, failure cleanup, retention, and restore test: PASS'

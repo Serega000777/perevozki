@@ -23,8 +23,12 @@ Telegram-бот не создан (нужен токен владельца). **
   Образцы systemd service/timer и процедура восстановления — в
   [docs/postgres-backups.md](docs/postgres-backups.md). **На VPS не активировано**.
   Проверено 2026-10-30: `bash -n` (4 скрипта) — OK; `git diff --check` — OK;
-  Docker-restore в этой среде недоступен (нет Docker), для него добавлен workflow
-  `postgres-backup-test.yml` с изолированной фиктивной БД.
+  GitHub Actions `postgres-backup-test.yml`, run
+  [41022278372](https://github.com/Serega000777/perevozki/actions/runs/41022278372)
+  — **success**: фиктивная БД PostgreSQL 16, backup → полное восстановление
+  с проверкой количества и сумм, отказ повреждённого дампа, отказ при
+  недоступном источнике и успешная ротация. В текущей локальной среде Docker
+  отсутствует. Production/VPS не затронуты.
 - [x] Отдельный репозиторий `Serega000777/perevozki`, записки агентов, протокол handoff
 - [x] npm workspaces `backend` / `frontend` / `bot`, Prettier
 - [x] БД: `User` + `EquipmentVehicle`, `EquipmentTrip`, `EquipmentExpenseCategory`, `EquipmentExpense`; init-миграция + 5 стандартных категорий
