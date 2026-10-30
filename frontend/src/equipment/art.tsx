@@ -773,18 +773,11 @@ function Paints({ id, p }: { id: string; p: Pal }) {
   );
 }
 
-// Картинка машины по виду техники; tone — цвет кабины (по порядку машины), colors — свой цвет (шапка),
-// decal — что дорисовать поверх в тех же координатах 240×120 (надпись на прицепе).
-export function VehicleArt({
-  kind,
-  tone = 0,
-  colors,
-  decal,
-  ...rest
-}: { kind?: string | null; tone?: number; colors?: { main: string; dark: string }; decal?: ReactNode } & SVGProps<SVGSVGElement>) {
+// Картинка машины по виду техники; tone — цвет кабины (по порядку машины).
+export function VehicleArt({ kind, tone = 0, ...rest }: { kind?: string | null; tone?: number } & SVGProps<SVGSVGElement>) {
   const id = useId();
   const key = artKind(kind);
-  const solid = { ...vehiclePalette(key, tone), ...colors };
+  const solid = vehiclePalette(key, tone);
   // После url(...) — запасной цвет: градиент не рисуется на фигурах нулевой ширины (тонкие линии).
   const url = (name: string, fallback: string) => `url(#${id}-${name}) ${fallback}`;
   const p: Pal = {
@@ -803,7 +796,6 @@ export function VehicleArt({
       <Paints id={id} p={solid} />
       <ellipse cx="120" cy="106" rx="114" ry="7" fill={p.shadow} />
       {ART[key](p, id)}
-      {decal}
     </svg>
   );
 }

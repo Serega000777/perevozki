@@ -127,9 +127,10 @@ h3 {
   line-height: 1;
   letter-spacing: -2px;
 }
+/* Подзаголовок переносится раньше, чем начинается фура в шапке, — не залезает под картинку. */
 .lead {
   position: relative;
-  max-width: 74%;
+  max-width: 62%;
   margin: 0;
   font-size: 15px;
   line-height: 1.4;
@@ -1687,7 +1688,7 @@ h3 {
     font-size: 19px;
   }
   .lead {
-    max-width: 70%;
+    max-width: 64%;
     font-size: 14px;
   }
 }
