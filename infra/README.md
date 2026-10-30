@@ -91,4 +91,7 @@ cd /opt/perevozki && docker run --rm -v "$PWD:/w:ro" -w /w --entrypoint node per
 
 - Перенос данных техники из Cement (`scripts/import-from-cement.sh`, контейнер `cement-crm-db-1`
   на этом же VPS) — только по команде владельца.
-- Бэкапы тома `perevozki_postgres_data`.
+- Активация резервных копий на VPS (только по отдельному разрешению):
+  [runbook](../docs/postgres-backups.md), `infra/perevozki-postgres-backup.{service,timer}`.
+  Механизм `pg_dump` и проверка восстановления подготовлены в репозитории;
+  существующая production-БД и контейнеры не изменялись.
