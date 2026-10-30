@@ -1,0 +1,28 @@
+name: PostgreSQL backup restore test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/postgres-backup-test.yml'
+      - 'scripts/*postgres*.sh'
+      - 'infra/backup-test-compose.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/postgres-backup-test.yml'
+      - 'scripts/*postgres*.sh'
+      - 'infra/backup-test-compose.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax checks
+        run: bash -n scripts/backup-postgres.sh scripts/verify-postgres-backup.sh scripts/test-postgres-restore.sh scripts/test-postgres-backup.sh
+      - name: Backup and full restore on synthetic data only
+        run: bash scripts/test-postgres-backup.sh

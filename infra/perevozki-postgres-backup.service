@@ -1,0 +1,16 @@
+[Unit]
+Description=Perevozki PostgreSQL logical backup
+Documentation=file:/opt/perevozki/docs/postgres-backups.md
+Requires=docker.service
+After=docker.service
+ConditionPathExists=/opt/perevozki/scripts/backup-postgres.sh
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/perevozki
+EnvironmentFile=/etc/perevozki-postgres-backup.conf
+UMask=0077
+ExecStart=/usr/bin/bash /opt/perevozki/scripts/backup-postgres.sh
+TimeoutStartSec=2h

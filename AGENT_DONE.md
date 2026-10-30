@@ -1,8 +1,8 @@
 # Perevozki — выполнено
 
 Последнее обновление:
-Дата: 2026-10-26
-Агент: Claude Code (Windows)
+Дата: 2026-10-30
+Агент: Codex (изолированная рабочая среда, ветка feature/postgres-backups)
 
 ## Текущее состояние проекта
 
@@ -15,6 +15,16 @@ Telegram-бот не создан (нужен токен владельца). **
 
 ## Уже реализовано
 
+- [x] Механизм логических бэкапов PostgreSQL 16 (`scripts/backup-postgres.sh`):
+  `pg_dump -Fc`, закрытый каталог вне Docker-тома, `flock`, временное имя до
+  успешной SHA-256/pg_restore-проверки, атомарная публикация, ротация через 14 дней;
+  `verify-postgres-backup.sh` и `test-postgres-restore.sh` (отдельный временный
+  контейнер без сети), фиктивный e2e-сценарий `test-postgres-backup.sh`.
+  Образцы systemd service/timer и процедура восстановления — в
+  [docs/postgres-backups.md](docs/postgres-backups.md). **На VPS не активировано**.
+  Проверено 2026-10-30: `bash -n` (4 скрипта) — OK; `git diff --check` — OK;
+  Docker-restore в этой среде недоступен (нет Docker), для него добавлен workflow
+  `postgres-backup-test.yml` с изолированной фиктивной БД.
 - [x] Отдельный репозиторий `Serega000777/perevozki`, записки агентов, протокол handoff
 - [x] npm workspaces `backend` / `frontend` / `bot`, Prettier
 - [x] БД: `User` + `EquipmentVehicle`, `EquipmentTrip`, `EquipmentExpenseCategory`, `EquipmentExpense`; init-миграция + 5 стандартных категорий

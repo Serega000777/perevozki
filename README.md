@@ -53,7 +53,9 @@ backend/            API: src/app.ts (Express), src/equipment.ts (маршрут�
 frontend/           Mini App: src/Equipment.tsx (экран техники), src/App.tsx, nginx.conf
 bot/                Telegram-бот: src/index.ts
 scripts/            dev-init-data.mjs — подпись тестового initData;
-                    import-from-cement.sh — перенос данных техники из Cement CRM
+                    import-from-cement.sh — перенос данных техники из Cement CRM;
+                    backup-postgres.sh — резервные копии Postgres;
+                    verify-postgres-backup.sh, test-postgres-restore.sh — проверка и восстановление
 infra/              заготовки для VPS (reverse proxy), деплой ещё не выполнялся
 docs/               анализ источника и ADR
 docker-compose.yml  весь стек: db, backend, frontend, bot
@@ -84,6 +86,9 @@ docker-compose.yml  весь стек: db, backend, frontend, bot
 | `WEBAPP_URL` | HTTPS-адрес, который открывает кнопка бота. Обязателен для бота |
 | `API_URL` | база API, вшивается в сборку фронтенда (по умолчанию `/api`) |
 | `HTTP_PORT` | порт фронтенд-контейнера на `127.0.0.1` (по умолчанию 8080) |
+| `BACKUP_DIR` | отдельный закрытый каталог резервных копий, по умолчанию `/var/backups/perevozki/postgresql` |
+| `BACKUP_RETENTION_DAYS` | хранение завершённых локальных копий, по умолчанию 14 суток |
+| `BACKUP_REQUIRE_MOUNTPOINT` | необязательная защита: не писать копию, если внешний диск не смонтирован |
 
 ## Локальный запуск (без Docker для кода)
 
@@ -132,6 +137,18 @@ SOURCE_DB_CONTAINER=<контейнер Postgres Cement> SOURCE_DB_USER=cement S
 ```
 
 Дамп сохраняется в `backups/` (в git не попадает).
+
+### Резервное копирование PostgreSQL
+
+Скрипты для ежедневного `pg_dump` в отдельный каталог, проверки контрольной суммы,
+автоматической ротации, восстановления в изолированную тестовую PostgreSQL и образцы
+systemd service/timer: [docs/postgres-backups.md](docs/postgres-backups.md).
+Расписание **не активировано на VPS** — установка требует отдельного разрешения владельца.
+Проверка на вымышленных данных в локальном Docker/CI:
+
+```bash
+bash scripts/test-postgres-backup.sh
+```
 
 ## Frontend
 
