@@ -25,7 +25,11 @@ docker start "$container_id" > /dev/null
 
 ready=0
 for _ in {1..60}; do
-  if docker exec "$container_id" pg_isready -q -U restore_test -d restore_test; then
+  # The official image briefly runs a bootstrap server which passes pg_isready,
+  # then shuts it down before exec'ing the final PostgreSQL process as PID 1.
+  # Wait for the final server to avoid racing that transition.
+  if docker exec "$container_id" sh -c 'test "$(cat /proc/1/comm)" = postgres' \
+    && docker exec "$container_id" pg_isready -q -U restore_test -d restore_test; then
     ready=1
     break
   fi
