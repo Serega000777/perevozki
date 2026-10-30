@@ -56,7 +56,6 @@ M3 — Improvements:
 Развёрнуто: `https://perevozki.crm-cement.ru`, `/opt/perevozki` — см. [infra/README.md](infra/README.md).
 **Amola Finance на том же VPS не трогать** (AGENTS.md).
 
-- [ ] Выложить `357f6fe` (каталог техники, рисунки, фото машин, логотип, поле даты на iPhone): сначала `ship-image.sh backend` (при старте применится миграция `20261030000000_vehicle_catalog_photo` — только добавляет столбцы и таблицу), затем `frontend` — ждёт команды владельца
 - [ ] Если Telegram покажет старую сборку — версионный путь в URL кнопки (`/app-<дата>`), как в Cement; nginx отдаёт SPA на любом пути
 
 ## Позже
