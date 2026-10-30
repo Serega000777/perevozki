@@ -205,13 +205,11 @@ const OTHER_BRAND = '__other';
 export function VehicleForm({
   initial,
   vehicle,
-  tone = 0,
   submitLabel,
   onSubmit,
 }: {
   initial: VehicleDraft;
   vehicle?: Vehicle;
-  tone?: number;
   submitLabel: string;
   onSubmit: (draft: VehicleDraft) => Promise<void>;
 }) {
@@ -245,7 +243,7 @@ export function VehicleForm({
     <form className="form" onSubmit={submit}>
       <div className="vehicle-preview">
         <span className="vehicle-photo">
-          <PhotoPreview draft={d} vehicle={vehicle} tone={tone} />
+          <PhotoPreview draft={d} vehicle={vehicle} />
           {d.brand && <b className="brand-mark">{d.brand}</b>}
         </span>
         <span className="photo-actions">
@@ -259,7 +257,7 @@ export function VehicleForm({
               Убрать фото
             </button>
           ) : (
-            <small>Без фото — рисунок по виду техники</small>
+            <small>Без фото — картинка по виду техники</small>
           )}
         </span>
       </div>
@@ -335,8 +333,8 @@ export function VehicleForm({
   );
 }
 
-// Превью: только что выбранное фото, иначе текущее фото машины, иначе рисунок по виду техники.
-function PhotoPreview({ draft, vehicle, tone }: { draft: VehicleDraft; vehicle?: Vehicle; tone: number }) {
+// Превью: только что выбранное фото, иначе текущее фото машины, иначе картинка по виду техники.
+function PhotoPreview({ draft, vehicle }: { draft: VehicleDraft; vehicle?: Vehicle }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     if (!draft.photo) return setUrl(null);
@@ -345,6 +343,6 @@ function PhotoPreview({ draft, vehicle, tone }: { draft: VehicleDraft; vehicle?:
     return () => URL.revokeObjectURL(next);
   }, [draft.photo]);
   if (url) return <img className="vehicle-img" src={url} alt="" />;
-  if (vehicle?.photoAt && !draft.removePhoto) return <VehicleImage vehicle={{ ...vehicle, kind: draft.kind }} tone={tone} />;
-  return <VehicleArt kind={draft.kind} tone={tone} />;
+  if (vehicle?.photoAt && !draft.removePhoto) return <VehicleImage vehicle={{ ...vehicle, kind: draft.kind }} />;
+  return <VehicleArt kind={draft.kind} />;
 }

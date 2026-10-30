@@ -37,7 +37,6 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
     setEditing(null);
     await reload();
   };
-  const tone = (v: Vehicle) => vehicles.indexOf(v);
   const remove = async () => {
     try {
       await api(`/equipment/vehicles/${editing!.id}`, { method: 'DELETE' });
@@ -76,20 +75,20 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
       </Card>
       {adding && (
         <Sheet title="Новая машина" onClose={() => setAdding(false)}>
-          <VehicleForm initial={vehicleDraft()} tone={vehicles.length} submitLabel="Добавить машину" onSubmit={create} />
+          <VehicleForm initial={vehicleDraft()} submitLabel="Добавить машину" onSubmit={create} />
         </Sheet>
       )}
 
       <SectionHead title="Мои машины" aside={`${vehicles.length} ${vehiclesLabel(vehicles.length)}`} />
       {!vehicles.length && <Empty>Машин пока нет.</Empty>}
       <div className="vehicle-list">
-        {vehicles.map((v, i) => {
+        {vehicles.map((v) => {
           const used = usage(v);
           const about = [kindLabel(v.kind), [v.brand, v.model].filter(Boolean).join(' '), v.note].filter(Boolean).join(' · ');
           return (
             <button type="button" className="vehicle-card" key={v.id} onClick={() => setEditing(v)}>
               <span className="vehicle-photo">
-                <VehicleImage vehicle={v} tone={i} />
+                <VehicleImage vehicle={v} />
                 {v.brand && <b className="brand-mark">{v.brand}</b>}
               </span>
               <span className="vehicle-info">
@@ -108,7 +107,7 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
 
       {editing && (
         <Sheet title={editing.name} onClose={close}>
-          <VehicleForm initial={vehicleDraft(editing)} vehicle={editing} tone={tone(editing)} submitLabel="Сохранить" onSubmit={save} />
+          <VehicleForm initial={vehicleDraft(editing)} vehicle={editing} submitLabel="Сохранить" onSubmit={save} />
           {usage(editing).trips || usage(editing).expenses ? (
             <p className="hint">
               Удалить нельзя: у машины {tripsLabel(usage(editing).trips)} и {recordsLabel(usage(editing).expenses)} расходов.
