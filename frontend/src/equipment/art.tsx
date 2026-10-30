@@ -18,6 +18,8 @@ type Pal = {
   light: string;
   steel: string;
   steelDark: string;
+  accent: string;
+  accentDark: string;
   shadow: string;
 };
 
@@ -32,6 +34,8 @@ const COMMON = {
   light: '#ffd66b',
   steel: '#cdd1ca',
   steelDark: '#868a83',
+  accent: '#f2b51f',
+  accentDark: '#9c7209',
   shadow: 'rgba(30, 32, 24, 0.1)',
 };
 const TRUCK_TONES = [
@@ -45,33 +49,29 @@ const MACHINE_TONES = [
   { main: '#f2b51f', dark: '#9c7209' },
   { main: '#e8772a', dark: '#a4500f' },
 ];
-// Бледный вариант для шапки: те же формы, цвета фона иллюстрации.
-const GHOST: Pal = {
-  main: '#f8f6ec',
-  dark: '#c6c1a3',
-  trailer: '#f8f7f0',
-  trailerDark: '#cbc6a9',
-  tire: '#cdc8ab',
-  rim: '#eeebda',
-  frame: '#d4cfb3',
-  glass: '#e6e4d5',
-  glassHi: '#f5f4eb',
-  light: '#ece7cd',
-  steel: '#efecdd',
-  steelDark: '#cbc6a9',
-  shadow: 'transparent',
-};
-
 const G = 106;
 const sh = (fill: string, stroke: string, width = 1.3) => ({ fill, stroke, strokeWidth: width, strokeLinejoin: 'round' as const });
 
 function Wheel({ x, p, r = 12.5, rim }: { x: number; p: Pal; r?: number; rim?: string }) {
   const cy = G - r;
+  const nuts = r >= 10 ? [0, 1, 2, 3, 4, 5] : [];
   return (
     <g>
       <circle cx={x} cy={cy} r={r} fill={p.tire} />
-      <circle cx={x} cy={cy} r={r * 0.52} fill={rim ?? p.rim} />
-      <circle cx={x} cy={cy} r={r * 0.17} fill={p.frame} />
+      <circle cx={x} cy={cy} r={r * 0.8} fill="none" stroke="#fff" strokeOpacity={0.07} strokeWidth={r * 0.14} />
+      <circle cx={x} cy={cy} r={r * 0.54} fill={rim ?? p.rim} stroke={p.frame} strokeOpacity={0.45} strokeWidth={0.6} />
+      <circle cx={x} cy={cy} r={r * 0.25} fill={p.frame} opacity={0.55} />
+      {nuts.map((i) => (
+        <circle
+          key={i}
+          cx={x + Math.cos((i * Math.PI) / 3) * r * 0.37}
+          cy={cy + Math.sin((i * Math.PI) / 3) * r * 0.37}
+          r={r * 0.05}
+          fill={p.frame}
+          opacity={0.7}
+        />
+      ))}
+      <circle cx={x} cy={cy} r={r * 0.12} fill={rim ?? p.rim} />
     </g>
   );
 }
@@ -96,20 +96,41 @@ const Chassis = ({ from, to, p }: { from: number; to: number; p: Pal }) => <rect
 
 // Кабина над двигателем, смотрит вправо; x — задняя стенка, перед — x + 46.
 function Cab({ x, p, sleeper = false }: { x: number; p: Pal; sleeper?: boolean }) {
+  const roof = sleeper ? 27 : 39;
   return (
     <g>
-      {sleeper && <path d={`M${x + 3} 41 Q${x + 8} 27 ${x + 23} 26 H${x + 36} Q${x + 41} 27 ${x + 41} 41 Z`} {...sh(p.main, p.dark)} />}
+      {sleeper && (
+        <>
+          <path d={`M${x} 46 L${x - 6} 49 V83 L${x} 86 Z`} {...sh(p.main, p.dark)} />
+          <path d={`M${x + 3} 41 Q${x + 7} 28 ${x + 22} 26.5 H${x + 36} Q${x + 41} 27.5 ${x + 41} 41 Z`} {...sh(p.main, p.dark)} />
+        </>
+      )}
       <path d={`M${x} 96 V46 Q${x} 40 ${x + 6} 40 H${x + 36} Q${x + 41} 40 ${x + 42.5} 45 L${x + 46} 68 V96 Z`} {...sh(p.main, p.dark)} />
-      <path d={`M${x + 42.5} 45 L${x + 46} 68 V95 H${x + 42} V68 Z`} fill={p.dark} opacity={0.2} />
-      <path d={`M${x + 22} 46 H${x + 38.5} L${x + 41} 63 H${x + 22} Z`} fill={p.glass} stroke={p.dark} strokeWidth={1} strokeLinejoin="round" />
-      <path d={`M${x + 26} 48.5 H${x + 31} L${x + 27.5} 60.5 H${x + 24.5} Z`} fill={p.glassHi} opacity={0.85} />
-      <path d={`M${x + 19} 45 V89`} stroke={p.dark} strokeWidth={1} opacity={0.55} />
-      <rect x={x + 23} y={70} width={5} height={1.8} rx={0.9} fill={p.dark} opacity={0.7} />
-      <rect x={x + 41} y={78} width={6} height={4.5} rx={1.5} fill={p.light} />
-      <rect x={x + 30} y={89} width={18} height={7} rx={1.5} fill={p.frame} />
-      <path d={`M${x + 44} 47 L${x + 49} 48 V57`} fill="none" stroke={p.frame} strokeWidth={1.4} strokeLinecap="round" />
-      <rect x={x + 47.5} y={50} width={3.5} height={8} rx={1} fill={p.frame} />
-      <rect x={x + 7} y={92} width={10} height={3} rx={1} fill={p.frame} />
+      <path d={`M${x + 42.5} 45 L${x + 46} 68 V95 H${x + 42} V68 Z`} fill={p.dark} opacity={0.22} />
+      {[71, 74.5, 78, 81.5].map((y) => (
+        <rect key={y} x={x + 42.6} y={y} width={3.2} height={1.8} rx={0.6} fill={p.frame} opacity={0.75} />
+      ))}
+      <path
+        d={`M${x + 21} 45.5 H${x + 38.5} Q${x + 40} 45.5 ${x + 40.4} 47 L${x + 42.2} 62 Q${x + 42.3} 64 ${x + 40.5} 64 H${x + 21} Z`}
+        fill={p.glass}
+        stroke={p.dark}
+        strokeWidth={1}
+        strokeLinejoin="round"
+      />
+      <path d={`M${x + 25} 47.5 H${x + 31} L${x + 26.5} 62 H${x + 23} Z`} fill={p.glassHi} opacity={0.35} />
+      <path d={`M${x + 36} 40.2 H${x + 41.5} L${x + 43.5} 45.5 H${x + 36} Z`} fill={p.frame} opacity={0.8} />
+      {[x + 22, x + 28, x + 34].map((lx) => (
+        <rect key={lx} x={lx} y={roof - 1.6} width={3.2} height={1.6} rx={0.6} fill="#f1a83a" />
+      ))}
+      <path d={`M${x + 18.5} 44 V88 M${x + 2.5} 44 V88`} stroke={p.dark} strokeWidth={0.9} opacity={0.45} />
+      <rect x={x + 22} y={69} width={6} height={1.8} rx={0.9} fill={p.dark} opacity={0.7} />
+      <rect x={x + 40.5} y={84} width={7} height={4.5} rx={1.5} fill={p.light} />
+      <rect x={x + 37} y={84.5} width={3} height={3.5} rx={0.8} fill="#f08a2c" />
+      <rect x={x + 28} y={89.5} width={20} height={6.5} rx={1.8} fill={p.steel} stroke={p.steelDark} strokeWidth={0.8} />
+      <path d={`M${x + 44} 47 L${x + 50} 48.5 V60`} fill="none" stroke={p.frame} strokeWidth={1.3} strokeLinecap="round" />
+      <rect x={x + 48} y={50} width={4} height={9.5} rx={1.2} fill={p.frame} />
+      <rect x={x + 6} y={84} width={11} height={2.6} rx={1} fill={p.frame} />
+      <rect x={x + 6} y={91} width={11} height={2.6} rx={1} fill={p.frame} />
     </g>
   );
 }
@@ -368,9 +389,9 @@ const ART: Record<Kind, (p: Pal, id: string) => ReactNode> = {
           {[48, 82, 116].map((x) => (
             <path key={x} d={`M${x} 64 V84`} stroke={p.trailerDark} strokeWidth={1.2} />
           ))}
-          <rect x={148} y={34} width={13} height={54} rx={2} {...sh('#f2b51f', '#9c7209')} />
-          <path d="M155 34 L54 28 L54 38 L155 44 Z" {...sh('#f2b51f', '#9c7209')} />
-          <path d="M58 41 L138 46 V52 L58 47 Z" {...sh('#f6cd5e', '#9c7209')} />
+          <rect x={148} y={34} width={13} height={54} rx={2} {...sh(p.accent, p.accentDark)} />
+          <path d="M155 34 L54 28 L54 38 L155 44 Z" {...sh(p.accent, p.accentDark)} />
+          <path d="M58 41 L138 46 V52 L58 47 Z" {...sh(p.accent, p.accentDark)} />
           <circle cx={154} cy={39} r={4.5} fill={p.frame} />
           <path d="M57 38 V58 M57 58 q-5 5 1 8" fill="none" stroke={p.frame} strokeWidth={1.8} strokeLinecap="round" />
         </g>
@@ -399,8 +420,8 @@ const ART: Record<Kind, (p: Pal, id: string) => ReactNode> = {
       }
       over={
         <g>
-          <path d="M44 48 L230 20 V32 L44 60 Z" {...sh('#f2b51f', '#9c7209')} />
-          <path d="M112 38.5 V49 M168 30 V40.5" stroke="#9c7209" strokeWidth={1.3} />
+          <path d="M44 48 L230 20 V32 L44 60 Z" {...sh(p.accent, p.accentDark)} />
+          <path d="M112 38.5 V49 M168 30 V40.5" stroke={p.accentDark} strokeWidth={1.3} />
           <circle cx={50} cy={54} r={4} fill={p.frame} />
           <rect x={222} y={32} width={9} height={12} rx={1.5} fill={p.frame} />
           <path d="M226 44 V50 q-4 4 1 7" fill="none" stroke={p.frame} strokeWidth={1.8} strokeLinecap="round" />
@@ -419,7 +440,7 @@ const ART: Record<Kind, (p: Pal, id: string) => ReactNode> = {
           <rect x={144} y={38} width={16} height={50} rx={2} {...sh(p.steel, p.steelDark)} />
         </g>
       }
-      over={<FoldedBoom p={{ ...p, main: '#f2b51f', dark: '#9c7209' }} x1={30} x2={154} top={36} />}
+      over={<FoldedBoom p={{ ...p, main: p.accent, dark: p.accentDark }} x1={30} x2={154} top={36} />}
     />
   ),
   mixer: (p, id) => (
@@ -446,7 +467,7 @@ const ART: Record<Kind, (p: Pal, id: string) => ReactNode> = {
           <path d="M12 46 H32 L28 58 H16 Z" {...sh(p.steel, p.steelDark)} />
         </g>
       }
-      over={<FoldedBoom p={{ ...p, main: '#f2b51f', dark: '#9c7209' }} x1={26} x2={154} top={22} />}
+      over={<FoldedBoom p={{ ...p, main: p.accent, dark: p.accentDark }} x1={26} x2={154} top={22} />}
     />
   ),
   drill: (p) => (
@@ -458,9 +479,9 @@ const ART: Record<Kind, (p: Pal, id: string) => ReactNode> = {
           {[100, 108, 116].map((x) => (
             <path key={x} d={`M${x} 60 V80`} stroke={p.steelDark} strokeWidth={1.2} />
           ))}
-          <path d="M40 30 L104 76" stroke="#f2b51f" strokeWidth={6} strokeLinecap="round" />
-          <rect x={24} y={4} width={16} height={88} rx={2} {...sh('#f2b51f', '#9c7209')} />
-          <path d="M24 12 L40 24 L24 36 L40 48 L24 60 L40 72 L24 84" fill="none" stroke="#9c7209" strokeWidth={1.2} />
+          <path d="M40 30 L104 76" stroke={p.accent} strokeWidth={6} strokeLinecap="round" />
+          <rect x={24} y={4} width={16} height={88} rx={2} {...sh(p.accent, p.accentDark)} />
+          <path d="M24 12 L40 24 L24 36 L40 48 L24 60 L40 72 L24 84" fill="none" stroke={p.accentDark} strokeWidth={1.2} />
           <path d="M27 92 L37 96 L27 100 L37 104" fill="none" stroke={p.frame} strokeWidth={2.5} strokeLinejoin="round" />
         </g>
       }
@@ -698,15 +719,91 @@ export function vehiclePalette(kind: Kind, tone: number): Pal {
   return { ...COMMON, ...tones[Math.abs(tone) % tones.length] };
 }
 
-// Картинка машины по виду техники; tone — цвет кабины (по порядку машины), ghost — бледный вариант для шапки.
-export function VehicleArt({ kind, tone = 0, ghost = false, ...rest }: { kind?: string | null; tone?: number; ghost?: boolean } & SVGProps<SVGSVGElement>) {
+// Смешать цвет #rrggbb с другим: t = 0 — исходный, 1 — второй.
+function mix(hex: string, to: string, t: number) {
+  const c = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  return `#${[0, 1, 2]
+    .map((i) =>
+      Math.round(c(hex, i) + (c(to, i) - c(hex, i)) * t)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`;
+}
+
+// Объём: блик сверху и тень снизу у окрашенных панелей, тонированные стёкла, металлические диски.
+function Paints({ id, p }: { id: string; p: Pal }) {
+  const panel = (name: string, color: string) => (
+    <linearGradient id={`${id}-${name}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stopColor={mix(color, '#ffffff', 0.4)} />
+      <stop offset="0.45" stopColor={color} />
+      <stop offset="1" stopColor={mix(color, '#000000', 0.24)} />
+    </linearGradient>
+  );
+  return (
+    <defs>
+      {panel('main', p.main)}
+      {panel('accent', p.accent)}
+      {panel('trailer', p.trailer)}
+      <linearGradient id={`${id}-steel`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#f3f4f1" />
+        <stop offset="0.35" stopColor="#c3c7c0" />
+        <stop offset="0.6" stopColor="#e8eae6" />
+        <stop offset="1" stopColor="#8a8e87" />
+      </linearGradient>
+      <linearGradient id={`${id}-glass`} x1="0" y1="0" x2="0.35" y2="1">
+        <stop offset="0" stopColor="#2c3e4c" />
+        <stop offset="0.55" stopColor="#5f7b8e" />
+        <stop offset="1" stopColor="#a5bccb" />
+      </linearGradient>
+      <radialGradient id={`${id}-tire`}>
+        <stop offset="0.6" stopColor="#34362f" />
+        <stop offset="1" stopColor="#16170f" />
+      </radialGradient>
+      <radialGradient id={`${id}-rim`} cx="0.4" cy="0.35" r="0.75">
+        <stop offset="0" stopColor="#fbfbf9" />
+        <stop offset="0.6" stopColor="#bfc3bb" />
+        <stop offset="1" stopColor="#7a7e77" />
+      </radialGradient>
+      <radialGradient id={`${id}-shadow`}>
+        <stop offset="0" stopColor="#1e2018" stopOpacity="0.32" />
+        <stop offset="1" stopColor="#1e2018" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+  );
+}
+
+// Картинка машины по виду техники; tone — цвет кабины (по порядку машины), colors — свой цвет (шапка),
+// decal — что дорисовать поверх в тех же координатах 240×120 (надпись на прицепе).
+export function VehicleArt({
+  kind,
+  tone = 0,
+  colors,
+  decal,
+  ...rest
+}: { kind?: string | null; tone?: number; colors?: { main: string; dark: string }; decal?: ReactNode } & SVGProps<SVGSVGElement>) {
   const id = useId();
   const key = artKind(kind);
-  const p = ghost ? GHOST : vehiclePalette(key, tone);
+  const solid = { ...vehiclePalette(key, tone), ...colors };
+  // После url(...) — запасной цвет: градиент не рисуется на фигурах нулевой ширины (тонкие линии).
+  const url = (name: string, fallback: string) => `url(#${id}-${name}) ${fallback}`;
+  const p: Pal = {
+    ...solid,
+    main: url('main', solid.main),
+    accent: url('accent', solid.accent),
+    trailer: url('trailer', solid.trailer),
+    steel: url('steel', solid.steel),
+    glass: url('glass', solid.glass),
+    tire: url('tire', solid.tire),
+    rim: url('rim', solid.rim),
+    shadow: url('shadow', 'transparent'),
+  };
   return (
     <svg className="vehicle-art" viewBox="0 0 240 120" aria-hidden {...rest}>
-      <ellipse cx="120" cy="107" rx="108" ry="4" fill={p.shadow} />
+      <Paints id={id} p={solid} />
+      <ellipse cx="120" cy="106" rx="114" ry="7" fill={p.shadow} />
       {ART[key](p, id)}
+      {decal}
     </svg>
   );
 }

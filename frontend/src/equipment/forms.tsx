@@ -86,7 +86,7 @@ export function TripForm({
 }) {
   const [d, setD] = useState(initial);
   const set = <K extends keyof TripDraft>(key: K, value: TripDraft[K]) => setD((x) => ({ ...x, [key]: value }));
-  // После добавления обычно вносят следующую ходку той же машины за тот же день.
+  // После добавления обычно вносят следующий рейс той же машины за тот же день.
   const { busy, error, submit } = useSubmit(
     d,
     onSubmit,
@@ -107,7 +107,7 @@ export function TripForm({
       </div>
       <label className="switch">
         <input type="checkbox" checked={d.paid} onChange={(e) => set('paid', e.target.checked)} />
-        <span>Деньги за ходку получены</span>
+        <span>Деньги за рейс получены</span>
       </label>
       <ErrorNote>{error}</ErrorNote>
       <PrimaryButton plus={keepVehicleAndDate} disabled={busy || d.vehicleId == null}>
@@ -208,21 +208,19 @@ export function VehicleForm({
   tone = 0,
   submitLabel,
   onSubmit,
-  resetAfter = false,
 }: {
   initial: VehicleDraft;
   vehicle?: Vehicle;
   tone?: number;
   submitLabel: string;
   onSubmit: (draft: VehicleDraft) => Promise<void>;
-  resetAfter?: boolean;
 }) {
   const [d, setD] = useState(initial);
   const [customBrand, setCustomBrand] = useState(!!initial.brand && !BRANDS.some((b) => b.name === initial.brand));
   const [photoError, setPhotoError] = useState('');
   const set = <K extends keyof VehicleDraft>(key: K, value: VehicleDraft[K]) => setD((x) => ({ ...x, [key]: value }));
   const autoName = [d.brand, d.model].filter(Boolean).join(' ');
-  const { busy, error, submit } = useSubmit({ ...d, name: d.name.trim() || autoName }, onSubmit, resetAfter ? () => setD(vehicleDraft()) : undefined);
+  const { busy, error, submit } = useSubmit({ ...d, name: d.name.trim() || autoName }, onSubmit);
   const models = useId();
 
   const group = kindGroup(d.kind);
@@ -330,7 +328,7 @@ export function VehicleForm({
         <p>{TRADEMARKS}</p>
       </details>
       <ErrorNote>{error}</ErrorNote>
-      <PrimaryButton plus={resetAfter} disabled={busy}>
+      <PrimaryButton plus={!vehicle} disabled={busy}>
         {busy ? 'Сохраняем…' : submitLabel}
       </PrimaryButton>
     </form>

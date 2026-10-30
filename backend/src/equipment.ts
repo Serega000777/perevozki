@@ -102,7 +102,7 @@ export function equipmentRouter(prisma: PrismaClient) {
   router.delete('/vehicles/:id', async (req, res) => {
     const id = positiveInteger(req.params.id, 'ID техники');
     const used = await prisma.equipmentVehicle.findUniqueOrThrow({ where: { id }, include: { _count: { select: { trips: true, expenses: true } } } });
-    if (used._count.trips || used._count.expenses) throw new InputError('Нельзя удалить технику с ходками или расходами');
+    if (used._count.trips || used._count.expenses) throw new InputError('Нельзя удалить технику с рейсами или расходами');
     res.json(await prisma.equipmentVehicle.delete({ where: { id } }));
   });
 
@@ -114,14 +114,14 @@ export function equipmentRouter(prisma: PrismaClient) {
   });
   router.patch('/trips/:id', async (req, res) => {
     res.json(
-      await prisma.equipmentTrip.update({ where: { id: positiveInteger(req.params.id, 'ID ходки') }, data: tripData(req.body), include: { vehicle: true } }),
+      await prisma.equipmentTrip.update({ where: { id: positiveInteger(req.params.id, 'ID рейса') }, data: tripData(req.body), include: { vehicle: true } }),
     );
   });
   router.patch('/trips/:id/paid', async (req, res) => {
-    res.json(await prisma.equipmentTrip.update({ where: { id: positiveInteger(req.params.id, 'ID ходки') }, data: { paid: checkbox(req.body.paid) } }));
+    res.json(await prisma.equipmentTrip.update({ where: { id: positiveInteger(req.params.id, 'ID рейса') }, data: { paid: checkbox(req.body.paid) } }));
   });
   router.delete('/trips/:id', async (req, res) => {
-    res.json(await prisma.equipmentTrip.delete({ where: { id: positiveInteger(req.params.id, 'ID ходки') } }));
+    res.json(await prisma.equipmentTrip.delete({ where: { id: positiveInteger(req.params.id, 'ID рейса') } }));
   });
 
   router.get('/categories', async (_req, res) => {
@@ -165,8 +165,8 @@ export function equipmentRouter(prisma: PrismaClient) {
       prisma.equipmentTrip.findMany({ where, include: { vehicle: true }, orderBy: { date: 'asc' } }),
       prisma.equipmentExpense.findMany({ where, include: { vehicle: true, category: true }, orderBy: { date: 'asc' } }),
     ]);
-    // Выручка и прибыль — по всем ходкам сразу; баланс — только полученные деньги:
-    // неоплаченная ходка попадает в него, когда её отметят «Оплачено».
+    // Выручка и прибыль — по всем рейсам сразу; баланс — только полученные деньги:
+    // неоплаченный рейс попадает в него, когда её отметят «Оплачено».
     const revenue = trips.reduce((sum, x) => sum + n(x.amount), 0);
     const unpaid = trips.filter((x) => !x.paid).reduce((sum, x) => sum + n(x.amount), 0);
     const costs = expenses.reduce((sum, x) => sum + n(x.amount), 0);

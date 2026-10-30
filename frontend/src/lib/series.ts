@@ -24,7 +24,7 @@ function bucket(rows: TripLike[], keys: string[], keyOf: (day: string) => string
   return keys.map((k) => ({ label: labelOf(k), value: totals.get(k)! }));
 }
 
-// Выручка (все ходки, и неоплаченные тоже) по интервалам выбранного периода; для «дня» график не нужен.
+// Выручка (все рейсы, и неоплаченные тоже) по интервалам выбранного периода; для «дня» график не нужен.
 export function revenueSeries(rows: TripLike[], period: string, from: string | null, to: string): Point[] {
   if (period === 'day') return [];
   if (period === 'month') {
@@ -60,7 +60,7 @@ export function revenueSeries(rows: TripLike[], period: string, from: string | n
   );
 }
 
-// Месяц с наибольшей выручкой (с неоплаченными) и сколько в нём было ходок.
+// Месяц с наибольшей выручкой (с неоплаченными) и сколько в нём было рейсов.
 export function bestMonth(rows: TripLike[]) {
   const months = new Map<string, { revenue: number; trips: number; paid: number }>();
   for (const row of rows) {
