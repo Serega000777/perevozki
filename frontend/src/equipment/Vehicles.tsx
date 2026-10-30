@@ -8,12 +8,13 @@ import { VehicleForm, vehicleDraft, type VehicleDraft } from './forms';
 import { recordsLabel } from './Expenses';
 import { tripsLabel } from './Trips';
 import type { Expense, Trip, Vehicle } from './types';
-import { Card, DeleteButton, Empty, ErrorNote, errorText, haptic, IconTile, SectionHead, Sheet, Stats } from './ui';
+import { Card, DeleteButton, Empty, ErrorNote, errorText, haptic, IconTile, PrimaryButton, SectionHead, Sheet, Stats } from './ui';
 
 const vehiclesLabel = (n: number) => plural(n, ['машина', 'машины', 'машин']);
 
 export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehicle[]; trips: Trip[]; expenses: Expense[]; reload: () => Promise<void> }) {
   const [editing, setEditing] = useState<Vehicle | null>(null);
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
   const usage = (v: Vehicle) => ({ trips: trips.filter((t) => t.vehicleId === v.id).length, expenses: expenses.filter((x) => x.vehicleId === v.id).length });
 
@@ -26,6 +27,7 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
     const created = await api<Vehicle>('/equipment/vehicles', { method: 'POST', body: JSON.stringify(card) });
     await savePhoto(created.id, { ...card, photo, removePhoto });
     haptic();
+    setAdding(false);
     await reload();
   };
   const save = async ({ photo, removePhoto, ...card }: VehicleDraft) => {
@@ -55,7 +57,7 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
       <Stats
         items={[
           { icon: <Truck />, value: vehicles.length, unit: vehiclesLabel(vehicles.length), sub: 'в автопарке' },
-          { icon: <Route />, value: trips.length, unit: plural(trips.length, ['ходка', 'ходки', 'ходок']), sub: 'всего' },
+          { icon: <Route />, value: trips.length, unit: plural(trips.length, ['рейс', 'рейса', 'рейсов']), sub: 'всего' },
           { icon: <Coins />, value: rub(sum(expenses, (x) => x.amount)), sub: 'расходы всего' },
         ]}
       />
@@ -67,10 +69,16 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
           </IconTile>
         }
         title="Новая машина"
-        aside={<span className="card-hint">Добавьте машину, чтобы учитывать ходки и расходы</span>}
+        aside={<span className="card-hint">Добавьте машину, чтобы учитывать рейсы и расходы</span>}
       >
-        <VehicleForm initial={vehicleDraft()} tone={vehicles.length} submitLabel="Добавить машину" onSubmit={create} resetAfter />
+        {/* Форма длинная (фото, каталог), поэтому открывается в шторке и не растягивает вкладку. */}
+        <PrimaryButton onClick={() => setAdding(true)}>Добавить машину</PrimaryButton>
       </Card>
+      {adding && (
+        <Sheet title="Новая машина" onClose={() => setAdding(false)}>
+          <VehicleForm initial={vehicleDraft()} tone={vehicles.length} submitLabel="Добавить машину" onSubmit={create} />
+        </Sheet>
+      )}
 
       <SectionHead title="Мои машины" aside={`${vehicles.length} ${vehiclesLabel(vehicles.length)}`} />
       {!vehicles.length && <Empty>Машин пока нет.</Empty>}
@@ -90,7 +98,7 @@ export function Vehicles({ vehicles, trips, expenses, reload }: { vehicles: Vehi
                 <span className="pill active">Активна</span>
               </span>
               <span className="vehicle-count">
-                <strong>{used.trips}</strong> {plural(used.trips, ['ходка', 'ходки', 'ходок'])}
+                <strong>{used.trips}</strong> {plural(used.trips, ['рейс', 'рейса', 'рейсов'])}
               </span>
               <ChevronRight className="chevron" aria-hidden />
             </button>

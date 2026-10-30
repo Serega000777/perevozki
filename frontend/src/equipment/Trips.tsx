@@ -25,10 +25,10 @@ import {
 
 type Filter = number | 'all';
 
-export const tripsLabel = (n: number) => `${n} ${plural(n, ['ходка', 'ходки', 'ходок'])}`;
+export const tripsLabel = (n: number) => `${n} ${plural(n, ['рейс', 'рейса', 'рейсов'])}`;
 const tripMeta = (t: Trip) => [t.mileage != null ? `${num(t.mileage)} км` : '', t.comment].filter(Boolean).join(' · ');
 
-// Ходки по дням в одной подложке — для детализации в аналитике.
+// Рейсы по дням в одной подложке — для детализации в аналитике.
 export function TripDays({ trips, title = (t) => t.destination, onToggle }: { trips: Trip[]; title?: (t: Trip) => string; onToggle?: (t: Trip) => void }) {
   return (
     <div className="ledger">
@@ -49,7 +49,7 @@ export function TripDays({ trips, title = (t) => t.destination, onToggle }: { tr
   );
 }
 
-// Карточка ходки: дата над направлением, справа сумма, статус и переход к правке.
+// Карточка рейса: дата над направлением, справа сумма, статус и переход к правке.
 function TripCard({ trip, onOpen, onToggle }: { trip: Trip; onOpen: () => void; onToggle: () => void }) {
   const meta = tripMeta(trip);
   return (
@@ -115,7 +115,7 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
     <>
       <Stats
         items={[
-          { icon: <Route />, value: trips.length, unit: plural(trips.length, ['ходка', 'ходки', 'ходок']), sub: 'всего' },
+          { icon: <Route />, value: trips.length, unit: plural(trips.length, ['рейс', 'рейса', 'рейсов']), sub: 'всего' },
           { icon: <Coins />, value: paid, unit: 'оплачено', sub: 'закрытые' },
           { icon: <Clock />, value: trips.length - paid, unit: 'не оплачено', sub: 'в ожидании' },
         ]}
@@ -127,16 +127,16 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
             <Truck />
           </IconTile>
         }
-        title="Новая ходка"
+        title="Новый рейс"
       >
         {vehicles.length ? (
-          <TripForm vehicles={vehicles} initial={newTrip(vehicles)} submitLabel="Добавить ходку" onSubmit={create} keepVehicleAndDate lastDate={lastDate} />
+          <TripForm vehicles={vehicles} initial={newTrip(vehicles)} submitLabel="Добавить рейс" onSubmit={create} keepVehicleAndDate lastDate={lastDate} />
         ) : (
           <Empty>Сначала добавьте машину во вкладке «Авто».</Empty>
         )}
       </Card>
 
-      <SectionHead title="История ходок" aside={`${tripsLabel(filtered.length)} • ${rub(sum(filtered, (t) => t.amount))}`} />
+      <SectionHead title="История рейсов" aside={`${tripsLabel(filtered.length)} • ${rub(sum(filtered, (t) => t.amount))}`} />
       {vehicles.length > 1 && (
         <Choice
           options={[{ value: 'all' as Filter, label: 'Все машины' }, ...vehicles.map((v) => ({ value: v.id as Filter, label: v.name }))]}
@@ -148,7 +148,7 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
         />
       )}
       {!editing && <ErrorNote>{error}</ErrorNote>}
-      {!filtered.length && <Empty>Ходок пока нет.</Empty>}
+      {!filtered.length && <Empty>Рейсов пока нет.</Empty>}
       {groups.map(({ vehicle, rows }) => {
         const all = vehicle ? filtered.filter((t) => t.vehicleId === vehicle.id) : filtered;
         return (
@@ -173,14 +173,14 @@ export function Trips({ vehicles, trips, reload }: { vehicles: Vehicle[]; trips:
 
       {editing && (
         <Sheet
-          title="Ходка"
+          title="Рейс"
           onClose={() => {
             setEditing(null);
             setError('');
           }}
         >
           <TripForm vehicles={vehicles} initial={tripDraft(editing)} submitLabel="Сохранить" onSubmit={save} lastDate={lastDate} />
-          <DeleteButton label="Удалить ходку" onConfirm={remove} />
+          <DeleteButton label="Удалить рейс" onConfirm={remove} />
           <ErrorNote>{error}</ErrorNote>
         </Sheet>
       )}

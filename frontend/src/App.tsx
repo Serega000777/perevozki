@@ -31,7 +31,7 @@ export default function App() {
     );
   return (
     <main>
-      <PageHeader subtitle="Ваш автопарк, ходки, расходы и аналитика в одном месте" />
+      <PageHeader subtitle="Ваш автопарк, рейсы, расходы и аналитика в одном месте" />
       {error && !window.Telegram?.WebApp.initData ? (
         <OpenInTelegram />
       ) : error ? (

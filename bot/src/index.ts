@@ -9,7 +9,7 @@ if (!token || !webAppUrl) {
 if (new URL(webAppUrl).protocol !== 'https:') console.warn('Telegram открывает Mini App только по HTTPS — проверьте WEBAPP_URL');
 
 const bot = new Telegraf(token);
-bot.start((ctx) => ctx.reply('Перевозки — учёт техники, ходок и расходов', Markup.inlineKeyboard([Markup.button.webApp('Открыть Перевозки', webAppUrl)])));
+bot.start((ctx) => ctx.reply('Перевозки — учёт техники, рейсов и расходов', Markup.inlineKeyboard([Markup.button.webApp('Открыть Перевозки', webAppUrl)])));
 
 await bot.telegram.setMyCommands([{ command: 'start', description: 'Открыть Перевозки' }]);
 await bot.telegram.setChatMenuButton({ menuButton: { type: 'web_app', text: 'Открыть', web_app: { url: webAppUrl } } });

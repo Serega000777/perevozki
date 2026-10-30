@@ -66,7 +66,7 @@ export function Analytics({ vehicles, readOnly = false, version = 0 }: { vehicle
 
   return (
     <>
-      {/* За всё время: прибыль — с неоплаченными ходками, баланс — только полученные деньги. */}
+      {/* За всё время: прибыль — с неоплаченными рейсами, баланс — только полученные деньги. */}
       {allTime && (
         <Stats
           items={[
@@ -185,7 +185,7 @@ function Overview({ data, period }: { data: Data; period: string }) {
             ? 'За один день график не строится — итоги дня ниже.'
             : data.trips
               ? 'Мало данных для графика.'
-              : 'Ходок за этот период нет.'}
+              : 'Рейсов за этот период нет.'}
         </p>
       )}
       <div className="metrics">
@@ -396,9 +396,9 @@ function DetailSheet({
     return (
       <Sheet title={vehicle?.name ?? trips[0]?.vehicle.name ?? expenses[0]?.vehicle.name ?? 'Машина'} onClose={close}>
         <h4 className="sheet-section">
-          Ходки <span>{rub(sum(trips, (t) => t.amount))}</span>
+          Рейсы <span>{rub(sum(trips, (t) => t.amount))}</span>
         </h4>
-        {trips.length ? <TripDays trips={trips} onToggle={onToggle} /> : <Empty>Ходок нет.</Empty>}
+        {trips.length ? <TripDays trips={trips} onToggle={onToggle} /> : <Empty>Рейсов нет.</Empty>}
         <h4 className="sheet-section">
           Расходы <span>{rub(sum(expenses, (x) => x.amount))}</span>
         </h4>
@@ -414,7 +414,7 @@ function DetailSheet({
   }
 
   if (detail.kind === 'revenue') {
-    // У ходок нет категорий, поэтому выручка разбита по направлениям («куда ездил»).
+    // У рейсов нет категорий, поэтому выручка разбита по направлениям («куда ездил»).
     const groups = groupBy(
       data.tripRows,
       (t) => t.destination.trim(),
@@ -453,7 +453,7 @@ function DetailSheet({
             })}
           </div>
         ) : (
-          <Empty>Ходок за период нет.</Empty>
+          <Empty>Рейсов за период нет.</Empty>
         )}
       </Sheet>
     );

@@ -83,7 +83,7 @@ test('миграция заполнила стандартные категор�
   for (const name of ['Запчасти', 'Зарплата', 'Прочее', 'Ремонт', 'Топливо']) assert.ok(names.includes(name), name);
 });
 
-test('полный сценарий: техника → ходки → расходы → аналитика → удаление', async () => {
+test('полный сценарий: техника → рейсы → расходы → аналитика → удаление', async () => {
   // техника
   assert.equal((await call('POST', '/api/equipment/vehicles', { name: '  ' })).status, 400);
   const vehicle = await call('POST', '/api/equipment/vehicles', { name: `${tag} JCB 3CX`, note: 'А123ВС' });
@@ -94,7 +94,7 @@ test('полный сценарий: техника → ходки → расх�
   assert.deepEqual([renamed.body.name, renamed.body.note], [`${tag} JCB`, null]);
   assert.ok((await call('GET', '/api/equipment/vehicles')).body.some((x: { id: number }) => x.id === vehicleId));
 
-  // ходки
+  // рейсы
   const today = moscowDay();
   assert.deepEqual((await call('POST', '/api/equipment/trips', { vehicleId, date: '2026-02-30', destination: 'Карьер', amount: 1000 })).body, {
     error: 'Укажите корректную дату',
@@ -145,7 +145,7 @@ test('полный сценарий: техника → ходки → расх�
   assert.ok((await call('GET', '/api/equipment/trips')).body.some((x: { id: number }) => x.id === paidTrip.body.id));
   assert.ok((await call('GET', '/api/equipment/expenses')).body.some((x: { id: number }) => x.id === expense.body.id));
 
-  // аналитика: выручка и прибыль — все ходки, «не отдали» — неоплаченные, баланс — только полученное
+  // аналитика: выручка и прибыль — все рейсы, «не отдали» — неоплаченные, баланс — только полученное
   const month = await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`);
   assert.equal(month.status, 200);
   const { revenue, expenses, profit, balance, unpaid, trips, byVehicle } = month.body;
@@ -177,7 +177,7 @@ test('полный сценарий: техника → ходки → расх�
   assert.equal((await call('GET', `/api/equipment/analytics?period=month&vehicleId=${vehicleId}`)).body.unpaid, 8000);
 
   // защита от удаления используемых записей
-  assert.deepEqual((await call('DELETE', `/api/equipment/vehicles/${vehicleId}`)).body, { error: 'Нельзя удалить технику с ходками или расходами' });
+  assert.deepEqual((await call('DELETE', `/api/equipment/vehicles/${vehicleId}`)).body, { error: 'Нельзя удалить технику с рейсами или расходами' });
   assert.deepEqual((await call('DELETE', `/api/equipment/categories/${category.body.id}`)).body, { error: 'Категория уже используется в расходах' });
 
   // удаление

@@ -13,8 +13,8 @@ export type Me = { name: string; role: 'owner' | 'viewer' };
 type Tab = 'vehicles' | 'trips' | 'expenses' | 'analytics';
 
 const tabs: { key: Tab; label: string; icon: ReactNode; subtitle: string }[] = [
-  { key: 'vehicles', label: 'Авто', icon: <Truck />, subtitle: 'Ваш автопарк, ходки, расходы и аналитика в одном месте' },
-  { key: 'trips', label: 'Ходки', icon: <Route />, subtitle: 'Записывайте ходки и контролируйте доходы с каждого рейса' },
+  { key: 'vehicles', label: 'Авто', icon: <Truck />, subtitle: 'Ваш автопарк, рейсы, расходы и аналитика в одном месте' },
+  { key: 'trips', label: 'Рейсы', icon: <Route />, subtitle: 'Записывайте рейсы и контролируйте доходы' },
   { key: 'expenses', label: 'Расходы', icon: <Fuel />, subtitle: 'Учитывайте расходы и контролируйте затраты по каждой машине' },
   { key: 'analytics', label: 'Аналитика', icon: <ChartNoAxesColumn />, subtitle: 'Смотрите выручку, расходы и эффективность по автопарку и каждой машине' },
 ];
@@ -88,7 +88,7 @@ export function Equipment({ me }: { me: Me }) {
         <Sheet title="Меню" onClose={() => setMenu(false)}>
           <div className="menu-user">
             <strong>{me.name}</strong>
-            <span>{readOnly ? 'Просмотр: только аналитика' : 'Владелец: вносит ходки и расходы'}</span>
+            <span>{readOnly ? 'Просмотр: только аналитика' : 'Владелец: вносит рейсы и расходы'}</span>
           </div>
           {!readOnly && (
             <div className="menu-list">

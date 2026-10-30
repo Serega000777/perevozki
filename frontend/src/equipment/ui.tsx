@@ -123,9 +123,10 @@ export function SectionHead({ title, aside }: { title: string; aside?: ReactNode
 }
 
 // «+» — только у кнопок добавления; «Сохранить» в правке без значка.
-export function PrimaryButton({ children, disabled, plus = true }: { children: ReactNode; disabled?: boolean; plus?: boolean }) {
+// Без onClick — кнопка отправки формы; с onClick — обычная кнопка (например, открыть шторку).
+export function PrimaryButton({ children, disabled, plus = true, onClick }: { children: ReactNode; disabled?: boolean; plus?: boolean; onClick?: () => void }) {
   return (
-    <button className="primary" disabled={disabled}>
+    <button className="primary" type={onClick ? 'button' : 'submit'} disabled={disabled} onClick={onClick}>
       {plus && (
         <span className="plus" aria-hidden>
           <Plus />
@@ -240,7 +241,7 @@ export function Row({
   );
 }
 
-// Статус оплаты ходки: плашка с галочкой или часами; у владельца нажатие переключает.
+// Статус оплаты рейса: плашка с галочкой или часами; у владельца нажатие переключает.
 export function PaidPill({ paid, onToggle }: { paid: boolean; onToggle?: () => void }) {
   const content = (
     <>
@@ -323,7 +324,7 @@ export const ErrorNote = ({ children }: { children: ReactNode }) =>
     </p>
   ) : null;
 
-// Сколько строк истории показывать сразу: при сотнях ходок длинный список тормозит в WebView.
+// Сколько строк истории показывать сразу: при сотнях рейсов длинный список тормозит в WebView.
 export const PAGE = 60;
 export function MoreButton({ shown, total, onMore }: { shown: number; total: number; onMore: () => void }) {
   if (shown >= total) return null;

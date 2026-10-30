@@ -17,7 +17,22 @@ export function Logo() {
   );
 }
 
-// Бледная иллюстрация справа в шапке: дорога, горы, ели и фура (тот же рисунок, что в карточках).
+// Борт прицепа фуры в шапке: лаймовая полоса, знак и название (координаты рисунка 240×120).
+const TRAILER_DECAL = (
+  <g>
+    <rect x={8} y={68} width={160} height={4} fill="#d6ff45" />
+    <svg x={18} y={38} width={20} height={20} viewBox="0 0 1254 1254">
+      <rect width="1254" height="1254" rx="280" fill="#d6ff45" />
+      <path d={LOGO_MARK} fill="#1b1d17" />
+      <path d={LOGO_ROAD} fill="#1b1d17" fillRule="evenodd" />
+    </svg>
+    <text x={43} y={52.5} fontSize={11.5} fontWeight={800} letterSpacing={0.3} fill="#1b1d17">
+      ПЕРЕВОЗЧИК
+    </text>
+  </g>
+);
+
+// Иллюстрация справа в шапке: бледные дорога, горы и ели, на их фоне фура в цвете.
 export function HeroArt() {
   const fade = useId();
   return (
@@ -52,7 +67,7 @@ export function HeroArt() {
         <path d="M0 190 C70 160 150 146 300 150 V190 Z" fill="#efecd9" />
         <path d="M0 176 C80 148 160 136 300 140" stroke="#ddd8bc" strokeWidth="1.5" fill="none" />
         <path d="M40 186 C110 162 190 154 300 158" stroke="#e2ddc3" strokeWidth="2" strokeDasharray="10 9" fill="none" />
-        <VehicleArt kind="semi" ghost x={92} y={52} width={204} height={102} />
+        <VehicleArt kind="semi" colors={{ main: '#2e332c', dark: '#121510' }} decal={TRAILER_DECAL} x={88} y={46} width={212} height={106} />
       </g>
     </svg>
   );

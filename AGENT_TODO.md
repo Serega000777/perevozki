@@ -56,6 +56,7 @@ M3 — Improvements:
 Развёрнуто: `https://perevozki.crm-cement.ru`, `/opt/perevozki` — см. [infra/README.md](infra/README.md).
 **Amola Finance на том же VPS не трогать** (AGENTS.md).
 
+- [ ] Выложить «рейсы», свёрнутую форму машины, объёмные рисунки и фуру в шапке: `ship-image.sh backend frontend bot` (бот — новое приветствие) — ждёт команды владельца
 - [ ] Если Telegram покажет старую сборку — версионный путь в URL кнопки (`/app-<дата>`), как в Cement; nginx отдаёт SPA на любом пути
 
 ## Позже

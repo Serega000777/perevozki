@@ -265,6 +265,9 @@ h3 {
 .card-aside {
   margin-left: auto;
 }
+.card > .primary {
+  width: 100%;
+}
 .card-hint {
   display: block;
   max-width: 172px;
