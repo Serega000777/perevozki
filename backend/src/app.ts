@@ -35,6 +35,7 @@ export function createApp(prisma: PrismaClient, isProduction = process.env.NODE_
     // P2002 — нарушение уникальности, P2025 — запись не найдена (Prisma).
     const known = err instanceof InputError || err.code === 'P2002' || err.code === 'P2025';
     const status = err.status ?? (err.code === 'P2025' ? 404 : known ? 400 : 500);
+    if (status === 413) return void res.status(413).json({ error: 'Файл слишком большой' });
     res.status(status).json({ error: known || !isProduction ? err.message : 'Не удалось выполнить операцию' });
   });
   return app;

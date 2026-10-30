@@ -18,13 +18,28 @@ model User {
 }
 
 model EquipmentVehicle {
-  id        Int                @id @default(autoincrement())
+  id        Int                    @id @default(autoincrement())
   name      String
   note      String?
-  active    Boolean            @default(true)
+  // Из каталога карточки (frontend/src/equipment/catalog.ts): марка, модель, вид техники.
+  brand     String?
+  model     String?
+  kind      String?
+  // Время загрузки фото: клиент добавляет его к адресу картинки, чтобы кэш обновлялся.
+  photoAt   DateTime?
+  photo     EquipmentVehiclePhoto?
+  active    Boolean                @default(true)
   trips     EquipmentTrip[]
   expenses  EquipmentExpense[]
-  createdAt DateTime           @default(now())
+  createdAt DateTime               @default(now())
+}
+
+// Фото машины отдельно, чтобы списки машин не тянули картинки. Клиент сжимает фото до ~1280px.
+model EquipmentVehiclePhoto {
+  vehicleId Int              @id
+  vehicle   EquipmentVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  mime      String
+  data      Bytes
 }
 
 model EquipmentTrip {

@@ -1,6 +1,9 @@
-import { useState, type FormEvent } from 'react';
-import { IdCard, Truck } from 'lucide-react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
+import { Camera, ChevronDown, IdCard, Truck } from 'lucide-react';
 import { toNumberInput, todayKey } from '../lib/format';
+import { shrinkPhoto } from '../lib/photo';
+import { VehicleArt, VehicleImage } from './art';
+import { BRANDS, brandModels, KINDS, kindGroup, TRADEMARKS } from './catalog';
 import type { Category, Expense, Trip, Vehicle } from './types';
 import { Choice, DateChips, ErrorNote, errorText, Field, PrimaryButton } from './ui';
 
@@ -176,30 +179,142 @@ export function ExpenseForm({
   );
 }
 
-export type VehicleDraft = { name: string; note: string };
+export type VehicleDraft = {
+  name: string;
+  note: string;
+  brand: string;
+  model: string;
+  kind: string;
+  // Новое фото к загрузке после сохранения или просьба убрать текущее.
+  photo: Blob | null;
+  removePhoto: boolean;
+};
+
+export const vehicleDraft = (v?: Vehicle): VehicleDraft => ({
+  name: v?.name ?? '',
+  note: v?.note ?? '',
+  brand: v?.brand ?? '',
+  model: v?.model ?? '',
+  kind: v?.kind ?? '',
+  photo: null,
+  removePhoto: false,
+});
+
+const OTHER_BRAND = '__other';
 
 export function VehicleForm({
   initial,
+  vehicle,
+  tone = 0,
   submitLabel,
   onSubmit,
   resetAfter = false,
 }: {
   initial: VehicleDraft;
+  vehicle?: Vehicle;
+  tone?: number;
   submitLabel: string;
   onSubmit: (draft: VehicleDraft) => Promise<void>;
   resetAfter?: boolean;
 }) {
   const [d, setD] = useState(initial);
-  const { busy, error, submit } = useSubmit(d, onSubmit, resetAfter ? () => setD({ name: '', note: '' }) : undefined);
+  const [customBrand, setCustomBrand] = useState(!!initial.brand && !BRANDS.some((b) => b.name === initial.brand));
+  const [photoError, setPhotoError] = useState('');
+  const set = <K extends keyof VehicleDraft>(key: K, value: VehicleDraft[K]) => setD((x) => ({ ...x, [key]: value }));
+  const autoName = [d.brand, d.model].filter(Boolean).join(' ');
+  const { busy, error, submit } = useSubmit({ ...d, name: d.name.trim() || autoName }, onSubmit, resetAfter ? () => setD(vehicleDraft()) : undefined);
+  const models = useId();
+
+  const group = kindGroup(d.kind);
+  const brands = BRANDS.filter((b) => !group || b.group === group || b.name === d.brand);
+  const chooseBrand = (value: string) => {
+    setCustomBrand(value === OTHER_BRAND);
+    setD((x) => ({ ...x, brand: value === OTHER_BRAND ? '' : value, model: value === x.brand ? x.model : '' }));
+  };
+  const pickPhoto = async (file?: File) => {
+    if (!file) return;
+    setPhotoError('');
+    try {
+      const photo = await shrinkPhoto(file);
+      setD((x) => ({ ...x, photo, removePhoto: false }));
+    } catch (x) {
+      setPhotoError(errorText(x));
+    }
+  };
+  const hasPhoto = !!d.photo || (!!vehicle?.photoAt && !d.removePhoto);
+
   return (
     <form className="form" onSubmit={submit}>
+      <div className="vehicle-preview">
+        <span className="vehicle-photo">
+          <PhotoPreview draft={d} vehicle={vehicle} tone={tone} />
+          {d.brand && <b className="brand-mark">{d.brand}</b>}
+        </span>
+        <span className="photo-actions">
+          <label className="secondary photo-pick">
+            <Camera aria-hidden />
+            {hasPhoto ? 'Заменить фото' : 'Загрузить фото'}
+            <input type="file" accept="image/*" onChange={(e) => pickPhoto(e.target.files?.[0])} hidden />
+          </label>
+          {hasPhoto ? (
+            <button type="button" className="link" onClick={() => setD((x) => ({ ...x, photo: null, removePhoto: true }))}>
+              Убрать фото
+            </button>
+          ) : (
+            <small>Без фото — рисунок по виду техники</small>
+          )}
+        </span>
+      </div>
+      <ErrorNote>{photoError}</ErrorNote>
+      <label className="field">
+        <span>Вид техники</span>
+        <span className="select">
+          <select value={d.kind} onChange={(e) => set('kind', e.target.value)}>
+            <option value="">Не выбран</option>
+            {(['truck', 'machine'] as const).map((g) => (
+              <optgroup key={g} label={g === 'truck' ? 'Грузовики' : 'Спецтехника'}>
+                {KINDS.filter((k) => k.group === g).map((k) => (
+                  <option value={k.key} key={k.key}>
+                    {k.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <ChevronDown aria-hidden />
+        </span>
+      </label>
+      <div className="pair">
+        <label className="field">
+          <span>Марка</span>
+          <span className="select">
+            <select value={customBrand ? OTHER_BRAND : d.brand} onChange={(e) => chooseBrand(e.target.value)}>
+              <option value="">Не выбрана</option>
+              {brands.map((b) => (
+                <option value={b.name} key={b.name}>
+                  {b.name}
+                </option>
+              ))}
+              <option value={OTHER_BRAND}>Другая…</option>
+            </select>
+            <ChevronDown aria-hidden />
+          </span>
+        </label>
+        <Field label="Модель" list={models} placeholder="65115" value={d.model} onChange={(e) => set('model', e.target.value)} maxLength={60} />
+      </div>
+      <datalist id={models}>
+        {brandModels(d.brand).map((m) => (
+          <option value={m} key={m} />
+        ))}
+      </datalist>
+      {customBrand && <Field label="Название марки" value={d.brand} onChange={(e) => set('brand', e.target.value)} maxLength={60} required />}
       <Field
         label="Название"
         icon={<Truck />}
-        placeholder="Например, КамАЗ 162"
+        placeholder={autoName || 'Например, КамАЗ 162'}
         value={d.name}
-        onChange={(e) => setD({ ...d, name: e.target.value })}
-        required
+        onChange={(e) => set('name', e.target.value)}
+        required={!autoName}
         maxLength={100}
       />
       <Field
@@ -207,13 +322,31 @@ export function VehicleForm({
         icon={<IdCard />}
         placeholder="Необязательно"
         value={d.note}
-        onChange={(e) => setD({ ...d, note: e.target.value })}
+        onChange={(e) => set('note', e.target.value)}
         maxLength={250}
       />
+      <details className="fine-print">
+        <summary>Марки — товарные знаки их правообладателей</summary>
+        <p>{TRADEMARKS}</p>
+      </details>
       <ErrorNote>{error}</ErrorNote>
       <PrimaryButton plus={resetAfter} disabled={busy}>
         {busy ? 'Сохраняем…' : submitLabel}
       </PrimaryButton>
     </form>
   );
+}
+
+// Превью: только что выбранное фото, иначе текущее фото машины, иначе рисунок по виду техники.
+function PhotoPreview({ draft, vehicle, tone }: { draft: VehicleDraft; vehicle?: Vehicle; tone: number }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!draft.photo) return setUrl(null);
+    const next = URL.createObjectURL(draft.photo);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [draft.photo]);
+  if (url) return <img className="vehicle-img" src={url} alt="" />;
+  if (vehicle?.photoAt && !draft.removePhoto) return <VehicleImage vehicle={{ ...vehicle, kind: draft.kind }} tone={tone} />;
+  return <VehicleArt kind={draft.kind} tone={tone} />;
 }

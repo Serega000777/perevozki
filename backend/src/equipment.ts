@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import type { PrismaClient } from '@prisma/client';
 import {
   calendarDate,
@@ -25,6 +25,21 @@ const tripData = (body: any) => ({
   paid: checkbox(body.paid),
 });
 
+const vehicleData = (body: any) => ({
+  name: requiredText(body.name, 'Название техники', 100),
+  note: optionalText(body.note, 250),
+  brand: optionalText(body.brand, 60),
+  model: optionalText(body.model, 60),
+  kind: optionalText(body.kind, 30),
+});
+
+// Тип фото проверяем по первым байтам, а не только по заголовку запроса.
+const PHOTO_TYPES: Record<string, (b: Buffer) => boolean> = {
+  'image/jpeg': (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/png': (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  'image/webp': (b) => b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP',
+};
+
 const expenseData = (body: any) => ({
   vehicleId: positiveInteger(body.vehicleId, 'Техника'),
   categoryId: positiveInteger(body.categoryId, 'Категория'),
@@ -50,12 +65,39 @@ export function equipmentRouter(prisma: PrismaClient) {
     res.json(await prisma.equipmentVehicle.findMany({ orderBy: { name: 'asc' } }));
   });
   router.post('/vehicles', async (req, res) => {
-    const data = { name: requiredText(req.body.name, 'Название техники', 100), note: optionalText(req.body.note, 250) };
-    res.status(201).json(await prisma.equipmentVehicle.create({ data }));
+    res.status(201).json(await prisma.equipmentVehicle.create({ data: vehicleData(req.body) }));
   });
   router.patch('/vehicles/:id', async (req, res) => {
-    const data = { name: requiredText(req.body.name, 'Название техники', 100), note: optionalText(req.body.note, 250) };
-    res.json(await prisma.equipmentVehicle.update({ where: { id: positiveInteger(req.params.id, 'ID техники') }, data }));
+    res.json(await prisma.equipmentVehicle.update({ where: { id: positiveInteger(req.params.id, 'ID техники') }, data: vehicleData(req.body) }));
+  });
+  router.get('/vehicles/:id/photo', async (req, res) => {
+    const photo = await prisma.equipmentVehiclePhoto.findUnique({ where: { vehicleId: positiveInteger(req.params.id, 'ID техники') } });
+    if (!photo) return void res.status(404).json({ error: 'Фото нет' });
+    // Адрес меняется вместе с photoAt, поэтому картинку можно кэшировать надолго.
+    res.set('Cache-Control', 'private, max-age=31536000, immutable').type(photo.mime).send(Buffer.from(photo.data));
+  });
+  router.put('/vehicles/:id/photo', express.raw({ type: Object.keys(PHOTO_TYPES), limit: '3mb' }), async (req, res) => {
+    const id = positiveInteger(req.params.id, 'ID техники');
+    const mime = String(req.headers['content-type'] ?? '')
+      .split(';')[0]
+      .trim();
+    const data = req.body;
+    if (!Buffer.isBuffer(data) || !PHOTO_TYPES[mime]?.(data)) throw new InputError('Загрузите фото в формате JPEG, PNG или WebP');
+    const photoAt = new Date();
+    const bytes = new Uint8Array(data);
+    await prisma.$transaction([
+      prisma.equipmentVehicle.update({ where: { id }, data: { photoAt } }),
+      prisma.equipmentVehiclePhoto.upsert({ where: { vehicleId: id }, create: { vehicleId: id, mime, data: bytes }, update: { mime, data: bytes } }),
+    ]);
+    res.json({ photoAt });
+  });
+  router.delete('/vehicles/:id/photo', async (req, res) => {
+    const id = positiveInteger(req.params.id, 'ID техники');
+    await prisma.$transaction([
+      prisma.equipmentVehiclePhoto.deleteMany({ where: { vehicleId: id } }),
+      prisma.equipmentVehicle.update({ where: { id }, data: { photoAt: null } }),
+    ]);
+    res.json({ photoAt: null });
   });
   router.delete('/vehicles/:id', async (req, res) => {
     const id = positiveInteger(req.params.id, 'ID техники');
